@@ -301,10 +301,18 @@ Yang ikut terbawa saat menyalin folder:
 - Variabel rahasia di Vercel (Settings → Environment Variables): `APP_KEY`, `DB_URL` (koneksi langsung ke Neon), `DATABASE_URL` (lewat pooler).
 - Di laptop, `neon init` menambahkan `DATABASE_URL` ke `.env`. SIPEKA lokal **tetap memakai SQLite**, karena yang dibaca Laravel adalah `DB_URL`/`DB_CONNECTION`.
 
-**Belum siap untuk data warga asli:**
-1. Surat PDF/Word & logo disimpan di `/tmp` Vercel, jadi bisa hilang. Perlu **Vercel Blob**.
-2. Tombol Pelayanan/Kasi **tanpa password** dan bisa dibuka siapa pun di internet. Perlu PIN/password.
-3. Password admin bawaan tertulis di seeder, dan repo GitHub-nya publik. Ganti password admin di versi online.
+- **PIN wajib** di versi Vercel (`SIPEKA_WAJIB_PIN=true` di `vercel.json`): akun Pelayanan/Kasi tanpa PIN tidak bisa masuk.
+- **Password admin versi Vercel** diatur lewat variabel rahasia `SIPEKA_ADMIN_PASSWORD` (Settings → Environment Variables, minimal 8 karakter, lalu Redeploy). Password bawaan di seeder tidak dipakai lagi setelah itu.
+
+**Langkah awal versi online:** isi `SIPEKA_ADMIN_PASSWORD` → Redeploy → *Masuk sebagai Admin* → **Akun Petugas** → atur PIN untuk Admin Pelayanan & Kasi PC 1/2/3.
+
+**Masih perlu sebelum data warga asli:** surat PDF/Word & logo disimpan di `/tmp` Vercel, jadi bisa hilang. Perlu **Vercel Blob**.
+
+### PIN (PC kelurahan & Vercel)
+- Diatur Admin di **Akun Petugas**: 4–6 angka per akun. Bisa diganti atau dihapus.
+- Akun ber-PIN: setelah menekan tombolnya, muncul kotak PIN. Perangkat tetap diingat, jadi PIN cukup sekali per perangkat.
+- **Salah 5 kali → akun dikunci 15 menit.** Admin menyimpan PIN baru untuk membuka kuncinya.
+- Di PC kelurahan PIN **opsional**: akun tanpa PIN tetap langsung masuk seperti biasa.
 
 ## 9. Pindah ke MySQL (opsional)
 

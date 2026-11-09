@@ -65,6 +65,9 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - Runtime `vercel-php@0.7.4`, region sin1. SQLite di runtime itu TERLALU TUA untuk Laravel 13 (`pragma_table_xinfo` gagal), jadi Vercel pakai Postgres Neon
   (`muddy-block-08939547`, org `org-noisy-cake-69642523`). Env Vercel: `DB_URL` = koneksi unpooled (WAJIB unpooled: `api/index.php` memakai
   `pg_advisory_lock`, yang tidak jalan lewat pooler). Kode harus kompatibel SQLite (lokal) DAN Postgres (Vercel): pakai `whereLike` untuk pencarian.
+- PIN: `users.pin` (cast hashed). `AuthController::masuk` cek PIN + RateLimiter `pin:{id}` (5x / 15 menit, butuh cache
+  PERSISTEN: Vercel `CACHE_STORE=database`, jangan `array`). `config('app.wajib_pin')` = env `SIPEKA_WAJIB_PIN`
+  (true di vercel.json, false lokal). Password admin Vercel disinkronkan dari env `SIPEKA_ADMIN_PASSWORD` di `api/index.php`.
 - `.neon`, `neon.ts`, perubahan `package.json`/`package-lock.json` dari `neon init` sengaja TIDAK di-commit (alat lokal).
 
 ## Data sensitif
