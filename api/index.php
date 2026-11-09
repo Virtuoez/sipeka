@@ -4,16 +4,21 @@
  * Pintu masuk SIPEKA di Vercel (runtime komunitas vercel-php).
  * Hanya dipakai di Vercel; di PC kelurahan website dijalankan Apache lewat jalankan-jaringan.bat.
  *
- * Vercel bersifat serverless: folder proyek hanya-baca, satu-satunya tempat menulis adalah /tmp,
- * dan /tmp bisa kosong lagi kapan saja. Karena itu storage & database SQLite dibuat di /tmp,
- * lalu diisi data awal (layanan, template, akun, penduduk contoh) setiap kali masih kosong.
- * Data yang diinput di versi Vercel TIDAK permanen.
+ * Database: Postgres (Neon) dari Vercel Marketplace. Integrasinya mengisi DATABASE_URL;
+ * di sini disalin ke DB_URL yang dibaca config/database.php.
+ * Folder proyek di Vercel hanya-baca, jadi storage Laravel (cache view, file surat) ada di /tmp
+ * dan bisa hilang kapan saja. Data permohonan & penduduk aman karena ada di Postgres.
  */
 
-// Laravel membaca LARAVEL_STORAGE_PATH dari $_ENV/$_SERVER, yang bisa kosong (variables_order tanpa "E")
-foreach (['LARAVEL_STORAGE_PATH'] as $kunci) {
-    if (($nilai = getenv($kunci)) !== false) {
-        $_ENV[$kunci] = $_SERVER[$kunci] = $nilai;
+// Laravel membaca sebagian variabel dari $_ENV/$_SERVER, yang bisa kosong (variables_order tanpa "E")
+$salin = ['LARAVEL_STORAGE_PATH' => 'LARAVEL_STORAGE_PATH'];
+if (! getenv('DB_URL')) {
+    $salin['DB_URL'] = getenv('DATABASE_URL') !== false ? 'DATABASE_URL' : 'POSTGRES_URL';
+}
+foreach ($salin as $tujuan => $sumber) {
+    if (($nilai = getenv($sumber)) !== false && $nilai !== '') {
+        putenv("$tujuan=$nilai");
+        $_ENV[$tujuan] = $_SERVER[$tujuan] = $nilai;
     }
 }
 
@@ -27,42 +32,39 @@ foreach ([
     }
 }
 
-// Database disiapkan sekali per /tmp. Beberapa permintaan pertama bisa datang bersamaan, jadi pakai kunci:
-// hanya satu yang menyiapkan, sisanya menunggu. Penanda "siap" baru ditulis kalau migrasi + data awal sukses,
-// sehingga database setengah jadi (mis. gagal di tengah) akan disiapkan ulang pada permintaan berikutnya.
-$database = "$tmp/database.sqlite";
+// Sekali per instance: jalankan migrasi terbaru, dan isi data awal hanya kalau database masih kosong
+// (data yang sudah ada TIDAK ditimpa). Kunci advisory Postgres mencegah beberapa instance bermigrasi bersamaan.
 $siap = "$tmp/database.siap";
 if (! file_exists($siap)) {
-    $kunci = fopen("$tmp/database.lock", 'c');
-    flock($kunci, LOCK_EX);
-    try {
-        if (! file_exists($siap)) {
-            @unlink($database);
-            touch($database);
+    require __DIR__.'/../vendor/autoload.php';
+    $app = require __DIR__.'/../bootstrap/app.php';
+    $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+    $kernel->bootstrap();
+    $db = $app->make('db')->connection();
 
-            require __DIR__.'/../vendor/autoload.php';
-            $app = require __DIR__.'/../bootstrap/app.php';
-            try {
-                $kode = $app->make(Illuminate\Contracts\Console\Kernel::class)
-                    ->call('migrate', ['--force' => true, '--seed' => true]);
-            } catch (Throwable $e) {
-                // Log Vercel memotong pesan panjang: catat ringkasannya dulu supaya penyebabnya terbaca
-                $ringkas = 'SIPEKA-DB-GAGAL '.get_class($e).': '.mb_substr($e->getMessage(), 0, 600)
-                    .' @ '.$e->getFile().':'.$e->getLine();
-                for ($p = $e->getPrevious(); $p; $p = $p->getPrevious()) {
-                    $ringkas .= "\nSEBAB ".get_class($p).': '.mb_substr($p->getMessage(), 0, 400);
-                }
-                error_log($ringkas);
-                throw $e;
+    try {
+        $db->select('select pg_advisory_lock(7310)');
+        try {
+            if ($kernel->call('migrate', ['--force' => true]) !== 0) {
+                throw new RuntimeException('Migrasi database SIPEKA gagal: '.$kernel->output());
             }
-            if ($kode !== 0) {
-                throw new RuntimeException('Menyiapkan database SIPEKA gagal (kode '.$kode.').');
+            if (App\Models\User::query()->count() === 0
+                && $kernel->call('db:seed', ['--force' => true]) !== 0) {
+                throw new RuntimeException('Data awal SIPEKA gagal diisi: '.$kernel->output());
             }
-            touch($siap);
+        } finally {
+            $db->select('select pg_advisory_unlock(7310)');
         }
-    } finally {
-        flock($kunci, LOCK_UN);
-        fclose($kunci);
+        touch($siap);
+    } catch (Throwable $e) {
+        // Log Vercel memotong pesan panjang: catat ringkasannya supaya penyebabnya terbaca
+        $ringkas = 'SIPEKA-DB-GAGAL '.get_class($e).': '.mb_substr($e->getMessage(), 0, 600)
+            .' @ '.$e->getFile().':'.$e->getLine();
+        for ($p = $e->getPrevious(); $p; $p = $p->getPrevious()) {
+            $ringkas .= ' | SEBAB '.get_class($p).': '.mb_substr($p->getMessage(), 0, 400);
+        }
+        error_log($ringkas);
+        throw $e;
     }
 }
 

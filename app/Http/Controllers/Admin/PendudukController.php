@@ -14,7 +14,8 @@ class PendudukController extends Controller
     {
         $query = Penduduk::query()
             ->when($request->q, fn ($q, $v) => $q->where(fn ($w) => $w
-                ->where('nama', 'like', "%$v%")->orWhere('nik', 'like', "%$v%")->orWhere('no_kk', 'like', "%$v%")))
+                // whereLike tanpa beda huruf besar/kecil, sama di SQLite (lokal) maupun Postgres (Vercel)
+                ->whereLike('nama', "%$v%")->orWhereLike('nik', "%$v%")->orWhereLike('no_kk', "%$v%")))
             ->when($request->rt, fn ($q, $v) => $q->where('rt', str_pad($v, 3, '0', STR_PAD_LEFT)))
             ->when($request->jk, fn ($q, $v) => $q->where('jenis_kelamin', $v))
             ->when($request->status, fn ($q, $v) => $q->where('status', $v), fn ($q) => $q->where('status', 'aktif'));

@@ -25,7 +25,7 @@ class PermohonanController extends Controller
             ->when($request->q, fn ($q, $v) => ctype_digit($v) && strlen($v) <= 4
                 // Angka pendek (mis. "15") = nomor antrian
                 ? $q->where('nomor_antrian', (int) $v)
-                : $q->where(fn ($w) => $w->where('kode', 'like', "%$v%")->orWhere('nik', 'like', "%$v%")->orWhere('nama', 'like', "%$v%")))
+                : $q->where(fn ($w) => $w->whereLike('kode', "%$v%")->orWhereLike('nik', "%$v%")->orWhereLike('nama', "%$v%")))
             ->orderByDesc('tanggal_antrian')->orderByDesc('nomor_antrian')
             ->paginate(15)->withQueryString();
 
