@@ -42,8 +42,15 @@ if (! file_exists($siap)) {
 
             require __DIR__.'/../vendor/autoload.php';
             $app = require __DIR__.'/../bootstrap/app.php';
-            $kode = $app->make(Illuminate\Contracts\Console\Kernel::class)
-                ->call('migrate', ['--force' => true, '--seed' => true]);
+            try {
+                $kode = $app->make(Illuminate\Contracts\Console\Kernel::class)
+                    ->call('migrate', ['--force' => true, '--seed' => true]);
+            } catch (Throwable $e) {
+                // Log Vercel memotong pesan panjang: catat ringkasannya dulu supaya penyebabnya terbaca
+                error_log('SIPEKA-DB-GAGAL '.get_class($e).': '.mb_substr($e->getMessage(), 0, 600)
+                    .' @ '.$e->getFile().':'.$e->getLine());
+                throw $e;
+            }
             if ($kode !== 0) {
                 throw new RuntimeException('Menyiapkan database SIPEKA gagal (kode '.$kode.').');
             }
