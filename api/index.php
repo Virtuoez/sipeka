@@ -47,9 +47,16 @@ if (! file_exists($siap)) {
                     ->call('migrate', ['--force' => true, '--seed' => true]);
             } catch (Throwable $e) {
                 // Log Vercel memotong pesan panjang: catat ringkasannya dulu supaya penyebabnya terbaca
-                error_log('SIPEKA-DB-GAGAL '.get_class($e).': '.mb_substr($e->getMessage(), 0, 600)
-                    .' @ '.$e->getFile().':'.$e->getLine());
-                throw $e;
+                $ringkas = 'SIPEKA-DB-GAGAL '.get_class($e).': '.mb_substr($e->getMessage(), 0, 600)
+                    .' @ '.$e->getFile().':'.$e->getLine();
+                for ($p = $e->getPrevious(); $p; $p = $p->getPrevious()) {
+                    $ringkas .= "\nSEBAB ".get_class($p).': '.mb_substr($p->getMessage(), 0, 400);
+                }
+                error_log($ringkas);
+                http_response_code(500);
+                header('Content-Type: text/plain; charset=utf-8');
+                echo $ringkas;
+                exit;
             }
             if ($kode !== 0) {
                 throw new RuntimeException('Menyiapkan database SIPEKA gagal (kode '.$kode.').');
