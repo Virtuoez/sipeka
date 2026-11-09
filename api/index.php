@@ -77,4 +77,12 @@ if (! file_exists($siap)) {
     }
 }
 
-require __DIR__.'/../public/index.php';
+// public/index.php memuat bootstrap/app.php dengan require_once. Kalau aplikasi sudah dimuat di atas
+// (instance baru yang baru menyiapkan database), require_once hanya mengembalikan true → error 500 di
+// permintaan pertama. Jadi pakai ulang aplikasi yang sudah ada.
+if (isset($app) && $app instanceof Illuminate\Foundation\Application) {
+    define('LARAVEL_START', microtime(true));
+    $app->handleRequest(Illuminate\Http\Request::capture());
+} else {
+    require __DIR__.'/../public/index.php';
+}
