@@ -60,5 +60,12 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - Seeder: `AkunPetugasSeeder` (1 pelayanan + 3 kasi, `firstOrCreate` jadi tidak menimpa password), `LayananSeeder`
   (9 layanan + template, MENIMPA template yang sudah diedit), `ContohPendudukSeeder` (data fiktif), akun admin di `DatabaseSeeder`.
 
+## Versi Vercel (demo online)
+- https://sipeka-iota.vercel.app, project Vercel `prj_X93tr0vx2oOjZKk6mpuNEJ6zDW0x` (tim `team_EvHstL2rrw30ea6ZV51MVpiC`), git-linked ke `Virtuoez/sipeka` main.
+- Runtime `vercel-php@0.7.4`, region sin1. SQLite di runtime itu TERLALU TUA untuk Laravel 13 (`pragma_table_xinfo` gagal), jadi Vercel pakai Postgres Neon
+  (`muddy-block-08939547`, org `org-noisy-cake-69642523`). Env Vercel: `DB_URL` = koneksi unpooled (WAJIB unpooled: `api/index.php` memakai
+  `pg_advisory_lock`, yang tidak jalan lewat pooler). Kode harus kompatibel SQLite (lokal) DAN Postgres (Vercel): pakai `whereLike` untuk pencarian.
+- `.neon`, `neon.ts`, perubahan `package.json`/`package-lock.json` dari `neon init` sengaja TIDAK di-commit (alat lokal).
+
 ## Data sensitif
 `storage/app/private/arsip` dan `database.sqlite` berisi NIK/KK warga. Jangan di-commit, jangan diunggah ke layanan luar.

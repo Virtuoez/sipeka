@@ -293,6 +293,19 @@ Yang ikut terbawa saat menyalin folder:
 
 **PC kelurahan adalah "server utama".** Pengerjaan di laptop sebaiknya cuma untuk mengubah **kode/tampilan**. Saat memindahkan perubahan ke PC kelurahan, salin semua **kecuali** `database/database.sqlite`, `storage/app/private/arsip/`, dan `.env` milik PC kelurahan. Kalau ikut tertimpa, data asli di kantor bisa hilang.
 
+## 8b. Versi online di Vercel (demo)
+
+- Alamat: **https://sipeka-iota.vercel.app** (project Vercel `sipeka`, tim Faiq). Setiap push ke branch `main` di GitHub `Virtuoez/sipeka` otomatis dideploy.
+- Server di **Singapura** (`sin1`). Database **Postgres Neon** (project `muddy-block-08939547`, branch `production`, region Singapura).
+- File khusus Vercel: `vercel.json` dan `api/index.php`. Saat pertama jalan, tabel dibuat otomatis, dan data awal diisi **hanya kalau database masih kosong**.
+- Variabel rahasia di Vercel (Settings → Environment Variables): `APP_KEY`, `DB_URL` (koneksi langsung ke Neon), `DATABASE_URL` (lewat pooler).
+- Di laptop, `neon init` menambahkan `DATABASE_URL` ke `.env`. SIPEKA lokal **tetap memakai SQLite**, karena yang dibaca Laravel adalah `DB_URL`/`DB_CONNECTION`.
+
+**Belum siap untuk data warga asli:**
+1. Surat PDF/Word & logo disimpan di `/tmp` Vercel, jadi bisa hilang. Perlu **Vercel Blob**.
+2. Tombol Pelayanan/Kasi **tanpa password** dan bisa dibuka siapa pun di internet. Perlu PIN/password.
+3. Password admin bawaan tertulis di seeder, dan repo GitHub-nya publik. Ganti password admin di versi online.
+
 ## 9. Pindah ke MySQL (opsional)
 
 Default-nya memakai **SQLite** (file `database/database.sqlite`), jadi tidak perlu menyalakan MySQL. Untuk MySQL:
