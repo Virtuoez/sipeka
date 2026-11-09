@@ -53,10 +53,7 @@ if (! file_exists($siap)) {
                     $ringkas .= "\nSEBAB ".get_class($p).': '.mb_substr($p->getMessage(), 0, 400);
                 }
                 error_log($ringkas);
-                http_response_code(500);
-                header('Content-Type: text/plain; charset=utf-8');
-                echo $ringkas;
-                exit;
+                throw $e;
             }
             if ($kode !== 0) {
                 throw new RuntimeException('Menyiapkan database SIPEKA gagal (kode '.$kode.').');
