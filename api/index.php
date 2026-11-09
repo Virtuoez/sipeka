@@ -27,14 +27,32 @@ foreach ([
     }
 }
 
+// Database disiapkan sekali per /tmp. Beberapa permintaan pertama bisa datang bersamaan, jadi pakai kunci:
+// hanya satu yang menyiapkan, sisanya menunggu. Penanda "siap" baru ditulis kalau migrasi + data awal sukses,
+// sehingga database setengah jadi (mis. gagal di tengah) akan disiapkan ulang pada permintaan berikutnya.
 $database = "$tmp/database.sqlite";
-if (! file_exists($database) || filesize($database) === 0) {
-    touch($database);
+$siap = "$tmp/database.siap";
+if (! file_exists($siap)) {
+    $kunci = fopen("$tmp/database.lock", 'c');
+    flock($kunci, LOCK_EX);
+    try {
+        if (! file_exists($siap)) {
+            @unlink($database);
+            touch($database);
 
-    require __DIR__.'/../vendor/autoload.php';
-    $app = require __DIR__.'/../bootstrap/app.php';
-    $app->make(Illuminate\Contracts\Console\Kernel::class)
-        ->call('migrate', ['--force' => true, '--seed' => true]);
+            require __DIR__.'/../vendor/autoload.php';
+            $app = require __DIR__.'/../bootstrap/app.php';
+            $kode = $app->make(Illuminate\Contracts\Console\Kernel::class)
+                ->call('migrate', ['--force' => true, '--seed' => true]);
+            if ($kode !== 0) {
+                throw new RuntimeException('Menyiapkan database SIPEKA gagal (kode '.$kode.').');
+            }
+            touch($siap);
+        }
+    } finally {
+        flock($kunci, LOCK_UN);
+        fclose($kunci);
+    }
 }
 
 require __DIR__.'/../public/index.php';
