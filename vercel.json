@@ -1,0 +1,36 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.7.4",
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    { "src": "/(css|vendor|icons)/(.*)", "dest": "/public/$1/$2" },
+    { "src": "/(manifest\\.json|sw\\.js|offline\\.html|favicon\\.ico|robots\\.txt)", "dest": "/public/$1" },
+    { "src": "/(.*)", "dest": "/api/index.php" }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "APP_LOCALE": "id",
+    "APP_FALLBACK_LOCALE": "en",
+    "LARAVEL_STORAGE_PATH": "/tmp/sipeka/storage",
+    "APP_CONFIG_CACHE": "/tmp/sipeka/config.php",
+    "APP_EVENTS_CACHE": "/tmp/sipeka/events.php",
+    "APP_PACKAGES_CACHE": "/tmp/sipeka/packages.php",
+    "APP_ROUTES_CACHE": "/tmp/sipeka/routes.php",
+    "APP_SERVICES_CACHE": "/tmp/sipeka/services.php",
+    "VIEW_COMPILED_PATH": "/tmp/sipeka/storage/framework/views",
+    "DB_CONNECTION": "sqlite",
+    "DB_DATABASE": "/tmp/sipeka/database.sqlite",
+    "SESSION_DRIVER": "cookie",
+    "SESSION_LIFETIME": "600",
+    "CACHE_STORE": "array",
+    "QUEUE_CONNECTION": "sync",
+    "LOG_CHANNEL": "stderr"
+  }
+}
