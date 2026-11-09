@@ -21,7 +21,7 @@ class PendudukController extends Controller
             ->when($request->status, fn ($q, $v) => $q->where('status', $v), fn ($q) => $q->where('status', 'aktif'));
 
         if ($request->export === 'csv') {
-            abort_unless($request->user()->punyaPeran('admin', 'pelayanan'), 403);
+            abort_unless($request->user()->punyaPeran('admin', 'pelayanan') && ! $request->user()->isTamu(), 403);
 
             return $this->exportCsv($query);
         }

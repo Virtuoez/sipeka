@@ -133,7 +133,7 @@ Buka alamat SIPEKA, lalu muncul **2 tombol besar**:
 | Tolak permohonan | ✔ | ✔ | hanya miliknya |
 | Tarik paksa permohonan ke antrean (misal komputer Kasi rusak) | ✔ | ✔ | |
 | Revisi surat yang sudah selesai | ✔ | ✔ | |
-| Arsip Berkas | ✔ | ✔ | |
+| Arsip Berkas | ✔ | ✔ | ✔ |
 | Layanan & Template surat | ✔ | ✔ | |
 | Data Penduduk: lihat | ✔ | ✔ | ✔ |
 | Data Penduduk: tambah/ubah/import/export | ✔ | ✔ | |
@@ -301,14 +301,25 @@ Yang ikut terbawa saat menyalin folder:
 - Variabel rahasia di Vercel (Settings → Environment Variables): `APP_KEY`, `DB_URL` (koneksi langsung ke Neon), `DATABASE_URL` (lewat pooler).
 - Di laptop, `neon init` menambahkan `DATABASE_URL` ke `.env`. SIPEKA lokal **tetap memakai SQLite**, karena yang dibaca Laravel adalah `DB_URL`/`DB_CONNECTION`.
 
-- **PIN wajib** di versi Vercel (`SIPEKA_WAJIB_PIN=true` di `vercel.json`): akun Pelayanan/Kasi tanpa PIN tidak bisa masuk.
-- **Password admin versi Vercel** diatur lewat variabel rahasia `SIPEKA_ADMIN_PASSWORD` (Settings → Environment Variables, minimal 8 karakter, lalu Redeploy). Password bawaan di seeder tidak dipakai lagi setelah itu.
+- **Cara masuk versi online** (`SIPEKA_MASUK=google` di `vercel.json`): **Masuk dengan Google** + **Coba sebagai Tamu**. Pilihan Pelayanan/Kasi tidak tampil.
+  - Peran ditentukan Admin di **Akun Petugas**: isi **email Google** tiap petugas. Email yang tidak terdaftar ditolak.
+  - Google **tidak bisa** dipakai di WiFi kantor (`http://192.168.x.x`), jadi PC kelurahan tetap memakai tombol Pelayanan/Kasi + PIN.
+- **Password admin versi Vercel** diatur lewat variabel rahasia `SIPEKA_ADMIN_PASSWORD` (minimal 8 karakter, lalu Redeploy). Admin selalu bisa masuk lewat *"Masuk Admin dengan password"*.
+- **Akun Tamu** (`SIPEKA_TAMU=true`): bisa mencoba Pelayanan **dan** Kasi, tetapi hanya melihat & membuat **data contoh** (penduduk fiktif, permohonan bertanda contoh, folder `arsip-contoh`). Data warga asli tidak terlihat. Tamu tidak bisa mengubah template, data penduduk, atau akun. Data contoh buatan tamu dibersihkan setiap hari.
+- **Jangan mengedit `APP_KEY`** di Vercel. Kalau rusak (format `base64:...` salah), semua halaman error 500.
 
-**Langkah awal versi online:** isi `SIPEKA_ADMIN_PASSWORD` → Redeploy → *Masuk sebagai Admin* → **Akun Petugas** → atur PIN untuk Admin Pelayanan & Kasi PC 1/2/3.
+#### Mengaktifkan login Google (sekali saja)
+1. Buka **https://console.cloud.google.com** → buat project (mis. `sipeka`).
+2. **APIs & Services → OAuth consent screen**: jenis **External**, isi nama aplikasi `SIPEKA Sekumpul` dan email, lalu simpan. Di bagian *Audience*, tekan **Publish app** supaya akun Google mana pun bisa mencoba (yang boleh masuk tetap hanya email yang didaftarkan Admin).
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID** → *Web application*.
+   - *Authorized redirect URIs*: `https://sipeka-iota.vercel.app/auth/google/callback`
+4. Salin **Client ID** dan **Client secret** ke Vercel (Settings → Environment Variables, Production + Preview, tipe Sensitive):
+   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` → **Redeploy**.
+5. Masuk sebagai Admin → **Akun Petugas** → isi email Google Admin Pelayanan, Kasi PC 1/2/3 (dan admin, kalau ingin).
 
 **Masih perlu sebelum data warga asli:** surat PDF/Word & logo disimpan di `/tmp` Vercel, jadi bisa hilang. Perlu **Vercel Blob**.
 
-### PIN (PC kelurahan & Vercel)
+### PIN (PC kelurahan)
 - Diatur Admin di **Akun Petugas**: 4–6 angka per akun. Bisa diganti atau dihapus.
 - Akun ber-PIN: setelah menekan tombolnya, muncul kotak PIN. Perangkat tetap diingat, jadi PIN cukup sekali per perangkat.
 - **Salah 5 kali → akun dikunci 15 menit.** Admin menyimpan PIN baru untuk membuka kuncinya.

@@ -2,7 +2,10 @@
 @section('judul', 'Akun Petugas')
 
 @section('konten')
-@if (config('app.wajib_pin') && $daftar->contains(fn ($u) => ! $u->isAdmin() && ! $u->punyaPin()))
+@php($modeGoogle = config('app.mode_masuk') === 'google')
+@if ($modeGoogle)
+    <div class="alert alert-info small"><i class="bi bi-google"></i> Petugas masuk dengan <b>akun Google</b>. Isi <b>email Google</b> masing-masing petugas di bawah. Email yang tidak terdaftar akan ditolak.</div>
+@elseif (config('app.wajib_pin') && $daftar->contains(fn ($u) => ! $u->isAdmin() && ! $u->punyaPin()))
     <div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Versi ini <b>mewajibkan PIN</b>. Akun Pelayanan/Kasi yang belum punya PIN tidak bisa masuk.</div>
 @endif
 <div class="row g-3">
@@ -10,14 +13,31 @@
         <div class="card">
             <div class="table-responsive">
                 <table class="table mb-0">
-                    <thead><tr><th>Nama (tampil di tombol)</th><th>Peran</th><th>Cara masuk / PIN</th><th></th></tr></thead>
+                    <thead><tr><th>Nama</th><th>Peran</th><th>{{ $modeGoogle ? 'Email Google' : 'Cara masuk / PIN' }}</th><th></th></tr></thead>
                     <tbody>
                         @foreach ($daftar as $u)
                             <tr>
                                 <td>{{ $u->name }}</td>
                                 <td><span class="badge text-bg-{{ ['admin' => 'danger', 'pelayanan' => 'primary', 'kasi' => 'success'][$u->role] ?? 'secondary' }}">{{ $u->labelPeran() }}</span></td>
                                 <td class="small">
-                                    @if ($u->isAdmin())
+                                    @if ($modeGoogle)
+                                        @php($belum = str_ends_with($u->email, '@sekumpul.local') || str_ends_with($u->email, '@sekumpul.test'))
+                                        <div class="mb-1">
+                                            @if ($belum)
+                                                <span class="badge text-bg-danger">belum diisi (tidak bisa masuk dengan Google)</span>
+                                            @else
+                                                <span class="badge text-bg-success"><i class="bi bi-google"></i> {{ $u->email }}</span>
+                                            @endif
+                                        </div>
+                                        <form method="post" action="{{ route('admin.akun.email', $u) }}" class="d-flex gap-1">
+                                            @csrf @method('PUT')
+                                            <input type="email" name="email" class="form-control form-control-sm" style="max-width: 230px" placeholder="nama@gmail.com" value="{{ $belum ? '' : $u->email }}" required>
+                                            <button class="btn btn-sm btn-outline-primary">Simpan</button>
+                                        </form>
+                                        @if ($u->isAdmin())
+                                            <div class="text-muted mt-1" style="font-size: .75rem">Admin tetap bisa masuk dengan password lewat "Masuk Admin dengan password", memakai email yang sama.</div>
+                                        @endif
+                                    @elseif ($u->isAdmin())
                                         <i class="bi bi-shield-lock"></i> {{ $u->email }}
                                     @else
                                         <div class="mb-1">
@@ -70,16 +90,19 @@
                         <option value="pelayanan" @selected(old('role') === 'pelayanan')>Pelayanan (pantau &amp; verifikasi, template, arsip, data penduduk)</option>
                         <option value="admin" @selected(old('role') === 'admin')>Admin (semua menu + pengaturan &amp; akun)</option>
                     </select>
-                    <div class="form-text">Kasi & Pelayanan masuk dengan menekan tombol bernama ini. Untuk Kasi, buat satu akun per komputer.</div>
+                    <div class="form-text">{{ $modeGoogle ? 'Kasi & Pelayanan masuk dengan akun Google sesuai email di bawah.' : 'Kasi & Pelayanan masuk dengan menekan tombol bernama ini.' }} Untuk Kasi, buat satu akun per komputer/orang.</div>
                 </div>
-                <div id="isianPetugas" class="mb-3">
-                    <label class="form-label">PIN (4–6 angka){{ config('app.wajib_pin') ? '' : ', opsional' }}</label>
-                    <input type="password" name="pin" class="form-control" inputmode="numeric" pattern="\d{4,6}" maxlength="6" autocomplete="new-password">
+                <div id="isianEmail" class="mb-2">
+                    <label class="form-label" id="labelEmail">Email</label>
+                    <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="{{ $modeGoogle ? 'nama@gmail.com' : '' }}">
                 </div>
-                <div id="isianAdmin">
-                    <div class="mb-2"><label class="form-label">Email</label><input type="email" name="email" value="{{ old('email') }}" class="form-control"></div>
-                    <div class="mb-3"><label class="form-label">Password (min. 8 karakter)</label><input type="password" name="password" class="form-control"></div>
-                </div>
+                <div id="isianPassword" class="mb-3"><label class="form-label">Password (min. 8 karakter)</label><input type="password" name="password" class="form-control"></div>
+                @unless ($modeGoogle)
+                    <div id="isianPin" class="mb-3">
+                        <label class="form-label">PIN (4–6 angka){{ config('app.wajib_pin') ? '' : ', opsional' }}</label>
+                        <input type="password" name="pin" class="form-control" inputmode="numeric" pattern="\d{4,6}" maxlength="6" autocomplete="new-password">
+                    </div>
+                @endunless
                 <button class="btn btn-primary w-100">Buat Akun</button>
             </div>
         </form>
@@ -89,11 +112,22 @@
 
 @push('js')
 <script>
-    // Email & password hanya untuk Admin; PIN hanya untuk Pelayanan/Kasi
+    // Admin: email + password. Pelayanan/Kasi: email Google (mode Google) atau PIN (mode tombol).
+    // Isian yang disembunyikan juga dinonaktifkan supaya tidak ikut terkirim.
+    const modeGoogle = @json($modeGoogle);
     const peran = document.getElementById('pilihPeran');
+    const tampil = (id, ya) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.toggle('d-none', !ya);
+        el.querySelectorAll('input').forEach((i) => i.disabled = !ya);
+    };
     const atur = () => {
-        document.getElementById('isianAdmin').classList.toggle('d-none', peran.value !== 'admin');
-        document.getElementById('isianPetugas').classList.toggle('d-none', peran.value === 'admin');
+        const admin = peran.value === 'admin';
+        tampil('isianEmail', admin || modeGoogle);
+        tampil('isianPassword', admin);
+        tampil('isianPin', !admin);
+        document.getElementById('labelEmail').textContent = admin ? 'Email' : 'Email Google';
     };
     peran.addEventListener('change', atur);
     atur();

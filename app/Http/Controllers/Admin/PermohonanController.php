@@ -110,6 +110,8 @@ class PermohonanController extends Controller
 
     public function berkas(Berkas $berkas, Request $request)
     {
+        // Permohonan di luar data akun ini (mis. tamu membuka lampiran data asli) tersaring scope → 404
+        abort_unless($berkas->permohonan, 404);
         $this->bolehLihat($berkas->permohonan, $request);
         $abs = ArsipService::pathAbsolut($berkas->path);
         abort_unless($abs && is_file($abs), 404);

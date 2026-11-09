@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\DataContoh;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,10 +22,18 @@ class Permohonan extends Model
         'selesai' => ['Selesai', 'success'],
     ];
 
+    protected static function booted(): void
+    {
+        // Tamu hanya melihat/membuat data contoh; petugas asli tidak melihat data contoh
+        static::addGlobalScope(new DataContoh);
+        static::creating(fn (self $p) => DataContoh::tandai($p));
+    }
+
     protected function casts(): array
     {
         return [
             'data' => 'array',
+            'contoh' => 'boolean',
             'petugas_id' => 'integer',
             'tanggal_surat' => 'date',
             'tanggal_antrian' => 'date',
@@ -96,7 +105,8 @@ class Permohonan extends Model
                     return self::create($atribut + [
                         'tanggal_antrian' => $hari,
                         'nomor_antrian' => $nomor,
-                        'kode' => now()->format('ymd').'-'.str_pad((string) $nomor, 3, '0', STR_PAD_LEFT),
+                        // Data contoh berawalan "C" supaya kode & nama folder arsip tidak bentrok dengan data asli
+                        'kode' => (DataContoh::aktif() ? 'C' : '').now()->format('ymd').'-'.str_pad((string) $nomor, 3, '0', STR_PAD_LEFT),
                     ]);
                 });
             } catch (QueryException $e) {

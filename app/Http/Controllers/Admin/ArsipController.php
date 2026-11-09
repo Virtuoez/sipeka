@@ -11,7 +11,8 @@ class ArsipController extends Controller
 {
     public function index(Request $request)
     {
-        $path = trim((string) $request->query('path', ArsipService::ROOT), '/');
+        // Tamu hanya folder arsip-contoh; petugas lain folder arsip
+        $path = trim((string) $request->query('path', ArsipService::root()), '/');
         $abs = ArsipService::pathAbsolut($path);
         if (! $abs) {
             return redirect()->route('admin.arsip.index');
@@ -39,7 +40,7 @@ class ArsipController extends Controller
         $akum = '';
         foreach (explode('/', $path) as $bagian) {
             $akum = ltrim($akum.'/'.$bagian, '/');
-            $remah[] = ['nama' => $akum === ArsipService::ROOT ? 'Arsip' : $bagian, 'path' => $akum];
+            $remah[] = ['nama' => $akum === ArsipService::root() ? 'Arsip' : $bagian, 'path' => $akum];
         }
 
         return view('admin.arsip.index', compact('path', 'folder', 'file', 'remah'));

@@ -2,7 +2,7 @@
 @section('judul', 'Data Penduduk')
 
 @section('konten')
-@php($bolehUbah = auth()->user()->punyaPeran('admin', 'pelayanan'))
+@php($bolehUbah = auth()->user()->punyaPeran('admin', 'pelayanan') && ! auth()->user()->isTamu())
 @if ($bolehUbah)
 <div class="d-flex flex-wrap gap-2 justify-content-end mb-3">
     <a href="{{ route('admin.penduduk.create') }}" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i> Tambah Penduduk</a>

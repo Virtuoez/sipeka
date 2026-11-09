@@ -62,13 +62,24 @@ class User extends Authenticatable
         return $this->role === 'kasi';
     }
 
+    /** Akun tamu: mencoba Pelayanan + Kasi, tapi hanya melihat & membuat DATA CONTOH. */
+    public function isTamu(): bool
+    {
+        return $this->role === 'tamu';
+    }
+
     public function punyaPeran(string ...$peran): bool
     {
+        // Tamu dianggap Pelayanan sekaligus Kasi (datanya dibatasi ke data contoh oleh scope DataContoh)
+        if ($this->isTamu()) {
+            return (bool) array_intersect($peran, ['pelayanan', 'kasi']);
+        }
+
         return in_array($this->role, $peran, true);
     }
 
     public function labelPeran(): string
     {
-        return self::PERAN[$this->role] ?? $this->role;
+        return self::PERAN[$this->role] ?? ($this->isTamu() ? 'Tamu (Demo)' : $this->role);
     }
 }

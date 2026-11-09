@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Penduduk;
+use App\Models\Scopes\DataContoh;
 use Illuminate\Database\Seeder;
 
 /** Data CONTOH (fiktif) untuk uji coba. Hapus lewat panel admin sebelum dipakai sungguhan. */
@@ -26,7 +27,9 @@ class ContohPendudukSeeder extends Seeder
         ];
 
         foreach ($data as [$kk, $nik, $nama, $tempat, $tgl, $jk, $kawin, $kerja, $didik, $hub, $rt, $rw]) {
-            Penduduk::updateOrCreate(['nik' => $nik], [
+            // Data contoh: hanya terlihat oleh akun tamu (lihat Scopes\DataContoh)
+            Penduduk::withoutGlobalScope(DataContoh::class)->updateOrCreate(['nik' => $nik], [
+                'contoh' => true,
                 'no_kk' => $kk, 'nama' => $nama, 'tempat_lahir' => $tempat, 'tanggal_lahir' => $tgl,
                 'jenis_kelamin' => $jk, 'agama' => 'Islam', 'status_perkawinan' => $kawin, 'pekerjaan' => $kerja,
                 'pendidikan' => $didik, 'hubungan_keluarga' => $hub, 'kewarganegaraan' => 'WNI',

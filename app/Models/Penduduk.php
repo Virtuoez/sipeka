@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\DataContoh;
 use Illuminate\Database\Eloquent\Model;
 
 class Penduduk extends Model
@@ -27,9 +28,16 @@ class Penduduk extends Model
 
     public const HUBUNGAN = ['Kepala Keluarga', 'Istri', 'Suami', 'Anak', 'Menantu', 'Cucu', 'Orang Tua', 'Mertua', 'Famili Lain', 'Lainnya'];
 
+    protected static function booted(): void
+    {
+        // Tamu hanya melihat penduduk contoh; petugas asli tidak melihat penduduk contoh
+        static::addGlobalScope(new DataContoh);
+        static::creating(fn (self $p) => DataContoh::tandai($p));
+    }
+
     protected function casts(): array
     {
-        return ['tanggal_lahir' => 'date'];
+        return ['tanggal_lahir' => 'date', 'contoh' => 'boolean'];
     }
 
     public function getUmurAttribute(): ?int

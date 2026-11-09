@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Permohonan;
+use App\Models\Scopes\DataContoh;
 use App\Models\User;
+use App\Services\ArsipService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,13 @@ class AuthController extends Controller
 {
     public function pilih()
     {
+        // Versi online: masuk dengan Google (+ tombol Tamu); pilihan Pelayanan/Kasi tidak ditampilkan
+        if (config('app.mode_masuk') === 'google') {
+            return view('auth.google', [
+                'googleSiap' => filled(config('services.google.client_id')) && filled(config('services.google.client_secret')),
+            ]);
+        }
+
         $petugas = User::whereIn('role', ['pelayanan', 'kasi'])->orderBy('name')->get();
 
         // Akun yang sedang terbuka di perangkat lain (aktif 15 menit terakhir), supaya dua PC tidak memilih Kasi yang sama
@@ -36,8 +46,9 @@ class AuthController extends Controller
 
     public function masuk(User $user, Request $request)
     {
-        // Admin tidak boleh masuk lewat tombol
-        abort_unless($user->punyaPeran('pelayanan', 'kasi'), 403);
+        // Tombol hanya untuk Pelayanan & Kasi (bukan admin/tamu), dan tidak dipakai di mode Google
+        abort_unless(in_array($user->role, ['pelayanan', 'kasi'], true), 403);
+        abort_if(config('app.mode_masuk') === 'google', 404);
 
         if ($user->punyaPin()) {
             // Salah 5x → akun ini dikunci 15 menit (di semua perangkat), supaya PIN tidak bisa ditebak-tebak
@@ -63,6 +74,30 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return redirect($this->halamanAwal($user));
+    }
+
+    /**
+     * Masuk sebagai Tamu (demo): bisa mencoba Pelayanan + Kasi, tetapi hanya melihat & membuat DATA CONTOH.
+     * Data contoh buatan tamu dari hari-hari sebelumnya dibersihkan setiap kali tamu masuk.
+     */
+    public function masukTamu(Request $request)
+    {
+        abort_unless(config('app.tamu'), 404);
+        $tamu = User::where('role', 'tamu')->firstOrFail();
+
+        $lama = Permohonan::withoutGlobalScope(DataContoh::class)
+            ->where('contoh', true)->whereDate('created_at', '<', today())->get();
+        foreach ($lama as $p) {
+            if ($p->folder_path && str_starts_with($p->folder_path, ArsipService::ROOT_CONTOH.'/')) {
+                ArsipService::disk()->deleteDirectory($p->folder_path);
+            }
+            $p->delete();
+        }
+
+        Auth::login($tamu);   // tanpa "ingat saya": tamu keluar saat browser ditutup
+        $request->session()->regenerate();
+
+        return redirect($this->halamanAwal($tamu));
     }
 
     public function formAdmin()
@@ -104,10 +139,10 @@ class AuthController extends Controller
         return redirect()->route('login');
     }
 
-    private function halamanAwal(User $user): string
+    public function halamanAwal(User $user): string
     {
         return match ($user->role) {
-            'pelayanan' => route('admin.pengajuan.index'),
+            'pelayanan', 'tamu' => route('admin.pengajuan.index'),
             'kasi' => route('admin.antrean'),
             default => route('admin.dashboard'),
         };

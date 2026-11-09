@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class AkunController extends Controller
@@ -14,7 +15,8 @@ class AkunController extends Controller
     /** Daftar akun petugas (khusus admin). */
     public function index()
     {
-        return view('admin.akun.index', ['daftar' => User::orderBy('name')->get()]);
+        // Akun tamu (demo) tidak ditampilkan: tidak untuk diubah/dihapus
+        return view('admin.akun.index', ['daftar' => User::where('role', '!=', 'tamu')->orderBy('name')->get()]);
     }
 
     public function store(Request $request)
@@ -22,23 +24,36 @@ class AkunController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:users,name',
             'role' => 'required|in:'.implode(',', array_keys(User::PERAN)),
-            // Pelayanan & Kasi masuk lewat tombol, tanpa email/password. Hanya Admin yang butuh.
+            // Admin: email + password. Pelayanan & Kasi: email Google (untuk versi online) opsional.
             'email' => 'required_if:role,admin|nullable|email|unique:users,email',
             'password' => ['required_if:role,admin', 'nullable', Password::min(8)],
-            'pin' => [config('app.wajib_pin') ? 'required_unless:role,admin' : 'nullable', 'nullable', 'regex:/^\d{4,6}$/'],
+            'pin' => [config('app.wajib_pin') && config('app.mode_masuk') === 'tombol' ? 'required_unless:role,admin' : 'nullable', 'nullable', 'regex:/^\d{4,6}$/'],
         ], ['pin.regex' => 'PIN harus 4–6 angka.'], ['name' => 'nama']);
 
         if ($data['role'] === 'admin') {
             unset($data['pin']);
-        }
-
-        if ($data['role'] !== 'admin') {
-            $data['email'] = Str::slug($data['name']).'-'.Str::lower(Str::random(4)).'@sekumpul.local';
-            $data['password'] = Str::random(40); // tidak dipakai, akun masuk lewat tombol
+        } else {
+            $data['email'] = filled($data['email'] ?? null)
+                ? Str::lower($data['email'])
+                : Str::slug($data['name']).'-'.Str::lower(Str::random(4)).'@sekumpul.local';
+            $data['password'] = Str::random(40); // tidak dipakai: masuk lewat tombol/PIN atau Google
         }
         User::create($data);
 
         return back()->with('ok', 'Akun '.$data['name'].' dibuat.');
+    }
+
+    /** Email Google petugas: dipakai untuk "Masuk dengan Google" di versi online. */
+    public function aturEmail(Request $request, User $user)
+    {
+        abort_if($user->isTamu(), 422);
+        $data = $request->validate([
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+        ], [], ['email' => 'email Google']);
+
+        $user->update(['email' => Str::lower($data['email'])]);
+
+        return back()->with('ok', "{$user->name} sekarang masuk dengan Google memakai {$user->email}.");
     }
 
     /** Atur / ganti / hapus PIN akun Pelayanan atau Kasi. */

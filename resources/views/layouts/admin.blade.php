@@ -43,13 +43,15 @@
                     <span><i class="bi bi-inbox"></i> Semua Permohonan</span>
                     <span class="ms-auto" data-segarkan="lencana-permohonan">@if ($jumlahBaru && $u->isPelayanan())<span class="badge rounded-pill text-bg-warning">{{ $jumlahBaru }}</span>@endif</span>
                 </a>
+            @endif
+            @if ($u->punyaPeran('admin', 'pelayanan', 'kasi'))
                 <a class="nav-link @if (request()->routeIs('admin.arsip.*')) active @endif" href="{{ route('admin.arsip.index') }}"><i class="bi bi-folder2-open"></i> Arsip Berkas</a>
             @endif
 
             <div class="judul-menu">Pendataan</div>
             <a class="nav-link @if (request()->routeIs('admin.penduduk.*')) active @endif" href="{{ route('admin.penduduk.index') }}"><i class="bi bi-people"></i> Data Penduduk</a>
 
-            @if ($u->punyaPeran('admin', 'pelayanan'))
+            @if ($u->punyaPeran('admin', 'pelayanan') && ! $u->isTamu())
                 <div class="judul-menu">Pengaturan</div>
                 <a class="nav-link @if (request()->routeIs('admin.layanan.*')) active @endif" href="{{ route('admin.layanan.index') }}"><i class="bi bi-file-earmark-richtext"></i> Layanan &amp; Template</a>
             @endif
@@ -58,7 +60,7 @@
                 <a class="nav-link @if (request()->routeIs('admin.akun.index')) active @endif" href="{{ route('admin.akun.index') }}"><i class="bi bi-person-gear"></i> Akun Petugas</a>
             @endif
         </nav>
-        @unless ($u->isKasi())
+        @unless ($u->isKasi() || $u->isTamu() || config('app.mode_masuk') === 'google')
             @php($alamatLan = \App\Support\Jaringan::alamat())
             @if ($alamatLan)
                 <div class="small text-white-50 px-2 mt-2" title="Buka alamat ini di tablet / komputer lain yang tersambung ke WiFi kantor">
@@ -96,6 +98,9 @@
             </div>
         </header>
         <main class="p-3 p-lg-4 flex-grow-1">
+            @if ($u->isTamu())
+                <div class="alert alert-info py-2 small"><i class="bi bi-eyeglasses"></i> <b>Mode Tamu (demo).</b> Silakan coba Pelayanan &amp; Kasi. Yang tampil hanya <b>data contoh</b>, dan dibersihkan setiap hari.</div>
+            @endif
             @include('partials.flash')
             @yield('konten')
         </main>

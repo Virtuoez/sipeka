@@ -17,6 +17,8 @@
   "env": {
     "APP_ENV": "production",
     "SIPEKA_WAJIB_PIN": "true",
+    "SIPEKA_MASUK": "google",
+    "SIPEKA_TAMU": "true",
     "APP_DEBUG": "false",
     "APP_LOCALE": "id",
     "APP_FALLBACK_LOCALE": "en",

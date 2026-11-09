@@ -153,7 +153,7 @@
             <div class="card-body">
                 <div class="small font-monospace bg-light rounded p-2 mb-2 text-break">{{ $p->folder_path }}</div>
                 <div class="d-grid gap-2">
-                    @if ($u->punyaPeran('admin', 'pelayanan'))
+                    @if ($u->punyaPeran('admin', 'pelayanan', 'kasi'))
                         <a href="{{ route('admin.arsip.index', ['path' => $p->folder_path]) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder2-open me-1"></i> Buka Folder</a>
                     @endif
                     <a href="{{ route('admin.permohonan.zip', $p) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-zip me-1"></i> Unduh Semua (ZIP)</a>
@@ -172,10 +172,12 @@
                 @else
                     <p class="mb-2"><i class="bi bi-question-circle-fill text-warning"></i> NIK belum ada di data penduduk.</p>
                 @endif
-                <form method="post" action="{{ route('admin.permohonan.ke-penduduk', $p) }}">
-                    @csrf
-                    <button class="btn btn-sm btn-outline-primary w-100">{{ $penduduk ? 'Perbarui' : 'Tambahkan ke' }} Data Penduduk</button>
-                </form>
+                @unless ($u->isTamu())
+                    <form method="post" action="{{ route('admin.permohonan.ke-penduduk', $p) }}">
+                        @csrf
+                        <button class="btn btn-sm btn-outline-primary w-100">{{ $penduduk ? 'Perbarui' : 'Tambahkan ke' }} Data Penduduk</button>
+                    </form>
+                @endunless
             </div>
         </div>
 

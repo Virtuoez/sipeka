@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Permohonan;
+use App\Models\Scopes\DataContoh;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use ZipArchive;
@@ -17,6 +18,15 @@ use ZipArchive;
 class ArsipService
 {
     public const ROOT = 'arsip';
+
+    /** Folder terpisah untuk surat dari data contoh (akun tamu). */
+    public const ROOT_CONTOH = 'arsip-contoh';
+
+    /** Folder arsip yang boleh dibuka akun yang sedang masuk: tamu hanya arsip-contoh. */
+    public static function root(): string
+    {
+        return DataContoh::aktif() ? self::ROOT_CONTOH : self::ROOT;
+    }
 
     public static function disk()
     {
@@ -37,7 +47,7 @@ class ArsipService
         $bulan = $tanggal->format('m').' - '.ucfirst($tanggal->locale('id')->translatedFormat('F'));
 
         return implode('/', [
-            self::ROOT,
+            $p->contoh ? self::ROOT_CONTOH : self::ROOT,
             $p->layanan->folder,
             $tanggal->format('Y'),
             $bulan,
@@ -58,11 +68,14 @@ class ArsipService
         return $path;
     }
 
-    /** Ubah path relatif arsip jadi path absolut, dan pastikan tidak keluar dari folder arsip. */
+    /**
+     * Ubah path relatif arsip jadi path absolut, dan pastikan tidak keluar dari folder arsip
+     * milik akun yang sedang masuk (tamu: arsip-contoh, lainnya: arsip).
+     */
     public static function pathAbsolut(string $relatif): ?string
     {
         $relatif = trim(str_replace('\\', '/', $relatif), '/');
-        if ($relatif === '' || str_contains($relatif, '..') || ! str_starts_with($relatif.'/', self::ROOT.'/')) {
+        if ($relatif === '' || str_contains($relatif, '..') || ! str_starts_with($relatif.'/', self::root().'/')) {
             return null;
         }
 

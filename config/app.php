@@ -74,6 +74,13 @@ return [
     // false (PC kelurahan) = akun tanpa PIN langsung masuk; akun yang diberi PIN tetap ditanya PIN.
     'wajib_pin' => (bool) env('SIPEKA_WAJIB_PIN', false),
 
+    // Cara masuk petugas: 'tombol' (PC kelurahan: pilih Pelayanan/Kasi + PIN) atau 'google' (versi online).
+    // Google tidak mengizinkan login di alamat WiFi kantor (http://192.168.x.x), jadi mode google hanya untuk Vercel.
+    'mode_masuk' => env('SIPEKA_MASUK', 'tombol') === 'google' ? 'google' : 'tombol',
+
+    // Tombol "Coba sebagai Tamu" (demo dengan data contoh)
+    'tamu' => (bool) env('SIPEKA_TAMU', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

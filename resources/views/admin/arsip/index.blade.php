@@ -19,7 +19,7 @@
     </div>
 </div>
 
-@if ($path === \App\Services\ArsipService::ROOT)
+@if ($path === \App\Services\ArsipService::root())
     <div class="alert alert-light border small">
         <i class="bi bi-info-circle"></i> Berkas tersortir otomatis: <b>Layanan</b> &rsaquo; <b>Tahun</b> &rsaquo; <b>Bulan</b> &rsaquo; <b>Kode_Nama Pemohon</b>.
         Untuk cetak massal, buka folder bulan lalu klik <b>Unduh folder ini (ZIP)</b>.

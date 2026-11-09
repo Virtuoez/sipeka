@@ -2,23 +2,29 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleController;
 use Illuminate\Support\Facades\Route;
 
-// Website hanya untuk petugas di jaringan kantor: alamat utama langsung ke layar pilih peran
+// Website hanya untuk petugas: alamat utama langsung ke layar masuk
 Route::redirect('/', '/login');
 
 // ---------- Masuk ----------
-// Petugas: cukup pilih Pelayanan / Kasi (tanpa password). Admin: email + password.
+// PC kelurahan: pilih Pelayanan / Kasi (+ PIN kalau diatur). Versi online: Google + Tamu (config app.mode_masuk).
+// Admin selalu bisa memakai email + password.
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'pilih'])->name('login');
     Route::post('/masuk/{user}', [AuthController::class, 'masuk'])->name('masuk');
+    Route::post('/masuk-tamu', [AuthController::class, 'masukTamu'])->name('masuk.tamu');
     Route::get('/login/admin', [AuthController::class, 'formAdmin'])->name('login.admin');
     Route::post('/login/admin', [AuthController::class, 'loginAdmin']);
+    Route::get('/auth/google', [GoogleController::class, 'arahkan'])->name('google');
+    Route::get('/auth/google/callback', [GoogleController::class, 'kembali'])->name('google.kembali');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // ---------- Panel petugas ----------
-// Peran: admin (semua), pelayanan (pantau & verifikasi, template, arsip), kasi (ambil & kerjakan surat)
+// Peran: admin (semua), pelayanan (meja depan, template, arsip), kasi (ambil & kerjakan surat, arsip),
+// tamu (coba Pelayanan + Kasi dengan DATA CONTOH saja; tidak bisa mengubah template / data penduduk).
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', Admin\DashboardController::class)->name('dashboard');
 
@@ -47,21 +53,23 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/{permohonan}/surat/reset', 'resetSurat')->name('reset-surat');
         Route::get('/{permohonan}/unduh/{format}', 'unduh')->name('unduh');
         Route::get('/{permohonan}/zip', 'zip')->name('zip');
-        Route::post('/{permohonan}/ke-penduduk', 'keDataPenduduk')->name('ke-penduduk');
+        Route::post('/{permohonan}/ke-penduduk', 'keDataPenduduk')->middleware('bukan-tamu')->name('ke-penduduk');
         Route::delete('/{permohonan}', 'destroy')->middleware('peran:admin')->name('destroy');
     });
     Route::get('/berkas/{berkas}', [Admin\PermohonanController::class, 'berkas'])->name('berkas');
 
-
-    // Admin & pelayanan
-    Route::middleware('peran:admin,pelayanan')->group(function () {
-        Route::get('/penduduk/template-csv', [Admin\PendudukController::class, 'templateCsv'])->name('penduduk.template-csv');
-        Route::post('/penduduk/import', [Admin\PendudukController::class, 'import'])->name('penduduk.import');
-        Route::resource('penduduk', Admin\PendudukController::class)->only(['create', 'store', 'edit', 'update'])->parameters(['penduduk' => 'penduduk']);
-
+    // Arsip berkas: admin, pelayanan, kasi (tamu hanya melihat folder arsip data contoh)
+    Route::middleware('peran:admin,pelayanan,kasi')->group(function () {
         Route::get('/arsip', [Admin\ArsipController::class, 'index'])->name('arsip.index');
         Route::get('/arsip/file', [Admin\ArsipController::class, 'file'])->name('arsip.file');
         Route::get('/arsip/zip', [Admin\ArsipController::class, 'zip'])->name('arsip.zip');
+    });
+
+    // Admin & pelayanan (bukan tamu): ubah data penduduk, layanan & template surat
+    Route::middleware(['peran:admin,pelayanan', 'bukan-tamu'])->group(function () {
+        Route::get('/penduduk/template-csv', [Admin\PendudukController::class, 'templateCsv'])->name('penduduk.template-csv');
+        Route::post('/penduduk/import', [Admin\PendudukController::class, 'import'])->name('penduduk.import');
+        Route::resource('penduduk', Admin\PendudukController::class)->only(['create', 'store', 'edit', 'update'])->parameters(['penduduk' => 'penduduk']);
 
         Route::resource('layanan', Admin\LayananController::class)->except('show')->parameters(['layanan' => 'layanan']);
         Route::get('/layanan/{layanan}/template', [Admin\LayananController::class, 'template'])->name('layanan.template');
@@ -83,6 +91,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::post('/akun', [Admin\AkunController::class, 'store'])->name('akun.store');
         Route::delete('/akun/{user}', [Admin\AkunController::class, 'destroy'])->name('akun.destroy');
         Route::put('/akun/{user}/pin', [Admin\AkunController::class, 'aturPin'])->name('akun.pin');
+        Route::put('/akun/{user}/email', [Admin\AkunController::class, 'aturEmail'])->name('akun.email');
     });
 
     // Data penduduk: semua peran boleh melihat. Didaftarkan paling akhir supaya

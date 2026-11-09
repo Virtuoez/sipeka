@@ -8,7 +8,7 @@
         <h4 class="fw-bold mb-0 mt-1">{{ $penduduk->nama }}</h4>
         <div class="text-muted font-monospace small">{{ $penduduk->nik }}</div>
     </div>
-    @if (auth()->user()->punyaPeran('admin', 'pelayanan'))
+    @if (auth()->user()->punyaPeran('admin', 'pelayanan') && ! auth()->user()->isTamu())
         <a href="{{ route('admin.penduduk.edit', $penduduk) }}" class="btn btn-primary"><i class="bi bi-pencil me-1"></i> Ubah</a>
     @endif
 </div>

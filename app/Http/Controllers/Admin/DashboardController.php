@@ -17,7 +17,7 @@ class DashboardController extends Controller
         if ($request->user()->isKasi()) {
             return redirect()->route('admin.antrean');
         }
-        if ($request->user()->isPelayanan()) {
+        if ($request->user()->isPelayanan() || $request->user()->isTamu()) {
             return redirect()->route('admin.pengajuan.index');
         }
 

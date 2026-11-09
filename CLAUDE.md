@@ -68,6 +68,14 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - PIN: `users.pin` (cast hashed). `AuthController::masuk` cek PIN + RateLimiter `pin:{id}` (5x / 15 menit, butuh cache
   PERSISTEN: Vercel `CACHE_STORE=database`, jangan `array`). `config('app.wajib_pin')` = env `SIPEKA_WAJIB_PIN`
   (true di vercel.json, false lokal). Password admin Vercel disinkronkan dari env `SIPEKA_ADMIN_PASSWORD` di `api/index.php`.
+- Mode masuk: `config('app.mode_masuk')` = env `SIPEKA_MASUK` (`tombol` lokal / `google` Vercel). Mode google: `/login` = `auth/google.blade.php`,
+  `POST /masuk/{user}` 404. `GoogleController` (Laravel Socialite) mencocokkan email Google (lower) dengan `users.email` role admin/pelayanan/kasi.
+  Google OAuth TIDAK bisa di http://192.168.x.x, jadi PC kelurahan tetap mode tombol. Tes: `tests/Feature/MasukGoogleTest.php` (mock Socialite).
+- Tamu (`role=tamu`, env `SIPEKA_TAMU`): `punyaPeran()` menganggap tamu = pelayanan + kasi; middleware `bukan-tamu` menutup template/ubah penduduk.
+  Global scope `App\Models\Scopes\DataContoh` di Permohonan & Penduduk: tamu hanya `contoh=true`, akun lain hanya `contoh=false`
+  (seeder/console pakai `withoutGlobalScope`). Unik antrian = (tanggal, nomor, contoh); kode contoh berawalan `C`; arsip contoh di `arsip-contoh/`
+  (`ArsipService::root()`). Data contoh tamu dari hari sebelumnya dihapus saat tamu masuk.
+- Kasi boleh membuka Arsip Berkas (permintaan pemilik).
 - `.neon`, `neon.ts`, perubahan `package.json`/`package-lock.json` dari `neon init` sengaja TIDAK di-commit (alat lokal).
 
 ## Data sensitif

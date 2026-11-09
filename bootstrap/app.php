@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['peran' => \App\Http\Middleware\CekPeran::class]);
+        $middleware->alias([
+            'peran' => \App\Http\Middleware\CekPeran::class,
+            'bukan-tamu' => \App\Http\Middleware\BukanTamu::class,
+        ]);
         // Di Vercel, HTTPS diterima proxy Vercel. Percayai header proxy supaya link CSS/JS memakai https
         // (kalau tidak, browser memblokir CSS http di halaman https → tampilan rusak). Tidak aktif di PC lokal.
         if (getenv('VERCEL')) {
