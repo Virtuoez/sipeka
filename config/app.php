@@ -70,6 +70,10 @@ return [
     // Alamat website di WiFi kantor, diisi tools/siapkan.ps1 saat jalankan-jaringan.bat (tampil di menu samping)
     'alamat_lan' => env('SIPEKA_ALAMAT_LAN'),
 
+    // true = akun Pelayanan/Kasi WAJIB punya PIN untuk masuk (versi online/Vercel).
+    // false (PC kelurahan) = akun tanpa PIN langsung masuk; akun yang diberi PIN tetap ditanya PIN.
+    'wajib_pin' => (bool) env('SIPEKA_WAJIB_PIN', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

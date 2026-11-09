@@ -35,8 +35,9 @@
             <div id="langkahPeran" class="row g-3">
                 <div class="col-6">
                     @if ($pelayanan->count() === 1)
-                        <form method="post" action="{{ route('masuk', $pelayanan->first()) }}">
+                        <form method="post" action="{{ route('masuk', $pelayanan->first()) }}" data-pin="{{ $pelayanan->first()->punyaPin() ? 1 : 0 }}" data-nama="{{ $pelayanan->first()->name }}">
                             @csrf
+                            <input type="hidden" name="pin">
                             <button class="tombol-peran peran-pelayanan"><i class="bi bi-person-badge"></i><span class="judul">Pelayanan</span><div class="small opacity-75">Tablet meja depan</div></button>
                         </form>
                     @else
@@ -56,11 +57,13 @@
                             @foreach ($daftar as $u)
                                 @php($sedangDipakai = in_array($u->id, $dipakai))
                                 <div class="col-sm-{{ $daftar->count() >= 3 ? 4 : 6 }}">
-                                    <form method="post" action="{{ route('masuk', $u) }}" @if ($sedangDipakai) onsubmit="return confirm('{{ $u->name }} sepertinya sedang dibuka di perangkat lain. Tetap pakai di perangkat ini?')" @endif>
+                                    <form method="post" action="{{ route('masuk', $u) }}" data-pin="{{ $u->punyaPin() ? 1 : 0 }}" data-nama="{{ $u->name }}" @if ($sedangDipakai) onsubmit="return confirm('{{ $u->name }} sepertinya sedang dibuka di perangkat lain. Tetap pakai di perangkat ini?')" @endif>
                                         @csrf
+                                        <input type="hidden" name="pin">
                                         <button class="btn {{ $peran === 'kasi' ? 'btn-outline-warning text-dark' : 'btn-outline-success' }} tombol-pc w-100">
                                             <i class="bi {{ $peran === 'kasi' ? 'bi-pc-display' : 'bi-person-badge' }} d-block fs-2"></i>
                                             {{ $u->name }}
+                                            @if ($u->punyaPin())<i class="bi bi-lock-fill small text-muted" title="Pakai PIN"></i>@endif
                                             @if ($sedangDipakai)<div class="small fw-normal text-muted">sedang dipakai</div>@endif
                                         </button>
                                     </form>
@@ -80,7 +83,48 @@
         <p class="text-center text-white-50 small mt-3 mb-0">Pilihan ini diingat di perangkat ini. Untuk mengganti, buka menu nama di pojok kanan atas lalu <b>Ganti Peran</b>.</p>
     </div>
 
+    {{-- Kotak PIN (muncul kalau akun yang dipilih memakai PIN) --}}
+    <div id="kotakPin" class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center" style="background: rgba(0,0,0,.55); z-index: 1050">
+        <form id="formPin" class="card p-4 text-center" style="width: 320px; max-width: calc(100% - 32px)">
+            <i class="bi bi-lock-fill fs-1 text-success"></i>
+            <h5 class="fw-bold mb-1 text-dark" id="judulPin">Masukkan PIN</h5>
+            <div class="small text-muted mb-3">4–6 angka</div>
+            <input type="password" id="isianPin" class="form-control form-control-lg text-center fs-3 mb-3" inputmode="numeric" pattern="\d{4,6}" maxlength="6" autocomplete="off" required style="letter-spacing: .5em">
+            <button class="btn btn-primary btn-lg w-100">Masuk</button>
+            <button type="button" class="btn btn-link mt-1" onclick="tutupPin()">Batal</button>
+        </form>
+    </div>
+
     <script>
+        // Akun ber-PIN: tahan pengiriman, minta PIN dulu, lalu kirim bersama PIN
+        let formTujuan = null;
+        document.querySelectorAll('form[data-pin="1"]').forEach((f) => f.addEventListener('submit', (e) => {
+            if (e.defaultPrevented || f.elements.pin.value) return;
+            e.preventDefault();
+            formTujuan = f;
+            document.getElementById('judulPin').textContent = 'PIN ' + f.dataset.nama;
+            const kotak = document.getElementById('kotakPin');
+            kotak.classList.remove('d-none');
+            kotak.classList.add('d-flex');
+            const isian = document.getElementById('isianPin');
+            isian.value = '';
+            isian.focus();
+        }));
+        document.getElementById('formPin').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pin = document.getElementById('isianPin').value;
+            if (!/^\d{4,6}$/.test(pin) || !formTujuan) return;
+            formTujuan.elements.pin.value = pin;
+            formTujuan.submit();
+        });
+        function tutupPin() {
+            const kotak = document.getElementById('kotakPin');
+            kotak.classList.add('d-none');
+            kotak.classList.remove('d-flex');
+            formTujuan = null;
+        }
+
+
         const judulPilih = { kasi: 'Pilih komputer Kasi yang ini:', pelayanan: 'Pilih petugas Pelayanan:' };
         function tampilkan(peran) {
             document.getElementById('langkahPeran').classList.add('d-none');

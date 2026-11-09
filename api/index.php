@@ -52,6 +52,15 @@ if (! file_exists($siap)) {
                 && $kernel->call('db:seed', ['--force' => true]) !== 0) {
                 throw new RuntimeException('Data awal SIPEKA gagal diisi: '.$kernel->output());
             }
+            // Password admin versi online diambil dari variabel rahasia Vercel SIPEKA_ADMIN_PASSWORD,
+            // karena password bawaan di seeder terbaca di repo GitHub publik.
+            $passwordAdmin = getenv('SIPEKA_ADMIN_PASSWORD');
+            if ($passwordAdmin !== false && strlen($passwordAdmin) >= 8) {
+                $admin = App\Models\User::where('role', 'admin')->orderBy('id')->first();
+                if ($admin && ! Illuminate\Support\Facades\Hash::check($passwordAdmin, $admin->password)) {
+                    $admin->update(['password' => $passwordAdmin]);
+                }
+            }
         } finally {
             $db->select('select pg_advisory_unlock(7310)');
         }

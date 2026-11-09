@@ -6,13 +6,14 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /**
- * Masuk tanpa password untuk petugas (website hanya di jaringan kantor):
- * pilih "Pelayanan" atau "Kasi" (lalu pilih PC 1/2/3). Perangkat mengingat pilihan itu.
- * Admin tetap memakai email + password karena bisa menghapus data & mengubah pengaturan.
+ * Masuk tanpa email/password untuk petugas: pilih "Pelayanan" atau "Kasi" (lalu pilih PC 1/2/3),
+ * plus PIN kalau akun itu diberi PIN (wajib di versi online, lihat config app.wajib_pin).
+ * Perangkat mengingat pilihan itu. Admin tetap memakai email + password.
  */
 class AuthController extends Controller
 {
@@ -37,6 +38,26 @@ class AuthController extends Controller
     {
         // Admin tidak boleh masuk lewat tombol
         abort_unless($user->punyaPeran('pelayanan', 'kasi'), 403);
+
+        if ($user->punyaPin()) {
+            // Salah 5x → akun ini dikunci 15 menit (di semua perangkat), supaya PIN tidak bisa ditebak-tebak
+            $kunci = 'pin:'.$user->id;
+            if (RateLimiter::tooManyAttempts($kunci, 5)) {
+                $menit = (int) ceil(RateLimiter::availableIn($kunci) / 60);
+
+                return back()->withErrors(['pin' => "PIN {$user->name} salah 5 kali. Coba lagi dalam {$menit} menit."]);
+            }
+            if (! preg_match('/^\d{4,6}$/', (string) $request->input('pin'))
+                || ! Hash::check($request->input('pin'), $user->pin)) {
+                RateLimiter::hit($kunci, 15 * 60);
+                $sisa = RateLimiter::retriesLeft($kunci, 5);
+
+                return back()->withErrors(['pin' => "PIN {$user->name} salah.".($sisa ? " Sisa {$sisa} kali percobaan." : '')]);
+            }
+            RateLimiter::clear($kunci);
+        } elseif (config('app.wajib_pin')) {
+            return back()->withErrors(['pin' => "{$user->name} belum punya PIN. Minta Admin mengatur PIN di menu Akun Petugas."]);
+        }
 
         Auth::login($user, remember: true);   // perangkat ini diingat: besok langsung masuk
         $request->session()->regenerate();
