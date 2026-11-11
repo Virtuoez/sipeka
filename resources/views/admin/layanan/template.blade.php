@@ -57,8 +57,8 @@
         <div class="card-header small fw-semibold">Tampilan surat yang dicetak (contoh, data fiktif)</div>
         @php($s = \App\Models\Pengaturan::semua())
         <div class="card-body small py-2 border-bottom bg-light">
-            <i class="bi bi-info-circle"></i> Nama &amp; NIP pejabat di contoh ini hanya contoh. Surat asli otomatis memakai
-            <a href="{{ route('admin.pengaturan') }}">Profil Kelurahan</a>:
+            <i class="bi bi-info-circle"></i> Data warga di contoh ini fiktif. Nama pejabat di surat asli selalu diambil dari
+            <a href="{{ route('admin.pengaturan') }}">Profil Kelurahan</a> saat surat dibuat (gambar contoh ini tidak ikut berubah otomatis):
             Lurah <b>{{ $s['nama_lurah'] }}</b> (NIP {{ $s['nip_lurah'] }})
             @foreach (\App\Models\Layanan::BIDANG as $k => $label)
                 &middot; {{ $label }} <b>{{ $s['nama_kasi_'.$k] }}</b>
