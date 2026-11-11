@@ -73,17 +73,58 @@ class SuratService
         return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'][$n] ?? (string) $n;
     }
 
+    public static function formatNomor(?Layanan $layanan): string
+    {
+        return $layanan?->format_nomor ?: Pengaturan::ambil('format_nomor');
+    }
+
+    /**
+     * Nomor surat berikutnya.
+     * - Layanan dengan buku nomor: lanjut dari nomor TERBESAR yang sudah dipakai di buku itu tahun ini
+     *   (jadi kalau Kasi sekali mengetik nomor buku kantor, mis. 295, berikutnya otomatis 296).
+     * - Tanpa buku nomor: nomor urut semua surat tahun ini (cara lama).
+     */
     public static function nomorSuratBerikutnya(Layanan $layanan): string
     {
-        $urut = Permohonan::whereYear('tanggal_surat', now()->year)->whereNotNull('nomor_surat')->count() + 1;
+        $tahunIni = Permohonan::whereYear('tanggal_surat', now()->year)->whereNotNull('nomor_surat');
 
-        return strtr(Pengaturan::ambil('format_nomor'), [
+        if ($layanan->buku_nomor) {
+            $terakhir = 0;
+            $tahunIni->whereHas('layanan', fn ($q) => $q->where('buku_nomor', $layanan->buku_nomor))
+                ->with('layanan')->get(['id', 'layanan_id', 'nomor_surat'])
+                ->each(function ($p) use (&$terakhir) {
+                    $terakhir = max($terakhir, self::ambilUrut($p->nomor_surat, self::formatNomor($p->layanan)));
+                });
+            $urut = $terakhir + 1;
+        } else {
+            $urut = $tahunIni->count() + 1;
+        }
+
+        return strtr(self::formatNomor($layanan), [
             '{kode}' => $layanan->kode_surat ?: '470',
             '{no}' => str_pad((string) $urut, 3, '0', STR_PAD_LEFT),
             '{bulan_romawi}' => self::romawi(now()->month),
             '{bulan}' => now()->format('m'),
             '{tahun}' => now()->format('Y'),
         ]);
+    }
+
+    /** Ambil angka {no} dari nomor surat jadi, mis. "295 / KS-Pem / XI / 2026" → 295. Spasi boleh beda. */
+    public static function ambilUrut(?string $nomor, string $format): int
+    {
+        if (! $nomor || ! str_contains($format, '{no}')) {
+            return 0;
+        }
+        $pola = '';
+        foreach (preg_split('/(\{[a-z_]+\})/', $format, -1, PREG_SPLIT_DELIM_CAPTURE) as $bagian) {
+            $pola .= match (true) {
+                $bagian === '{no}' => '(\d+)',
+                (bool) preg_match('/^\{[a-z_]+\}$/', $bagian) => '.*?',
+                default => str_replace(' ', '\s*', preg_quote(preg_replace('/\s+/', ' ', $bagian), '/')),
+            };
+        }
+
+        return preg_match('/^\s*'.$pola.'\s*$/iu', $nomor, $m) ? (int) $m[1] : 0;
     }
 
     /** Kumpulkan semua nilai penanda untuk satu permohonan. */

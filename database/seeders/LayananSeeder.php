@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Layanan;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Jenis surat + template bawaan, mengikuti format surat Kelurahan Sekumpul
@@ -26,6 +27,40 @@ class LayananSeeder extends Seeder
         'ad6be19cceb737b6d454a29c04a3cf9c', // kematian
         '60780936b917fcc7a218d12110a509fb', // pindah
         '48840724c6f1f584835e8133fcfb34f6', // belum-menikah
+        // Versi 2 (format kantor pertama, 19 layanan)
+        '5caa8762bdd8ab4ac1f41954621f42dd', '971799d5e04accd607fa5c787b0e6d5e', '148b5b37c41be61e16941a00a580b7dd',
+        '70fd089b089986d74018f555b8dd0707', 'e1d439ba0b0a611f2179151539690a4b', '243cf827d332b39a4f752cddbcee8972',
+        '0a704d7f7d3cea2795643835076327d2', '4b6f6053440fb97af6d1f970d5059a8a', 'f7e78482e2b487f829eac1a6b648165e',
+        '2541aaa57451ddef0098ee4101d502d9', '908d446e96f1172a17b2a4e957dcc0b9', 'd2614eed41d618e56482e1d3ec5b2042',
+        '9d29789ab256c0f00e93919c25c9d658', '6bf6c324be85a3771e3f7a9495851c17', 'ed45906bb1cdd4012793a011a85e925f',
+        '3a1da818fc7553416d60d9ba35e55003', 'ad3573a188026afe619ccadc4e4a3efa', 'f041976aa4023a728d9a8cbfdac589a2',
+        'a3a39b3b56d58531a7cdb9edb2e1c1c4',
+    ];
+
+    /**
+     * Format nomor & buku nomor, sesuai surat kantor. Surat dalam satu buku memakai nomor urut bersama
+     * (mis. semua surat Kasi Pemerintahan, kecuali kematian yang punya buku sendiri "472. M").
+     */
+    private const NOMOR = [
+        'domisili' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'pengantar-ktp' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'pengantar-kk' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'kelahiran' => ['pemerintahan', '{no} / KS-SKK / {bulan_romawi} / {tahun}'],
+        'kematian' => ['kematian', '472. M / {no} / KS - {bulan_romawi} / {tahun}'],
+        'pindah' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'orang-yang-sama' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'pemekaran' => ['pemerintahan', '{no} / SK-Pem / {bulan_romawi} / {tahun}'],
+        'skbb' => ['pemerintahan', '{no} / SKKB / KS - {bulan_romawi} / {tahun}'],
+        'harga-tanah' => ['pemerintahan', '{no} / SKHT / KS- PEM / {bulan_romawi} / {tahun}'],
+        'hibah' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'sktm' => ['kesos', '400.9/{no}/Kel.SKP'],
+        'belum-menikah' => ['kesos', '400.9/{no}/Kel.SKP'],
+        'belum-bekerja' => ['kesos', '400.9/{no}/Kel.SKP'],
+        'duda-janda' => ['kesos', '400.9/{no}/Kel.SKP'],
+        'tidak-memiliki-rumah' => ['kesos', '400.10/{no}/Kel.SKP'],
+        'usaha' => ['pm', '400.10/{no}/Kel.SKP'],
+        'domisili-usaha' => ['pm', '400.10/{no}/Kel.SKP'],
+        'penghasilan' => ['pm', '400.10/{no}/Kel.SKP'],
     ];
 
     private const JABATAN_KASI = [
@@ -34,7 +69,14 @@ class LayananSeeder extends Seeder
         'pm' => 'Kasi Pemberdayaan Masyarakat',
     ];
 
-    private const PENUTUP = 'Demikian Surat Keterangan ini diberikan untuk dapat dipergunakan sebagaimana mestinya.';
+    /** Sebutan jabatan di kalimat pembuka surat Kasi (seperti surat kantor). */
+    private const KEPALA_SEKSI = [
+        'pemerintahan' => 'Kepala Seksi Pemerintahan',
+        'kesos' => 'Kepala Seksi Kesejahteraan Sosial',
+        'pm' => 'Kasi Pemberdayaan Masyarakat',
+    ];
+
+    private const PENUTUP = 'Demikian Surat keterangan ini diberikan untuk dapat dipergunakan sebagaimana mestinya.';
 
     // ---------------- Potongan HTML ----------------
 
@@ -55,7 +97,7 @@ class LayananSeeder extends Seeder
     }
 
     /** Identitas warga, urutan seperti surat kantor. $kolom = daftar kunci yang ditampilkan. */
-    private function dataDiri(array $kolom = ['nama', 'jk', 'ttl', 'kawin', 'agama', 'wn', 'nik', 'kerja', 'alamat']): string
+    private function dataDiri(array $kolom = ['nama', 'jk', 'ttl', 'kawin', 'agama', 'wn', 'nik', 'kerja', 'alamat'], array $label = []): string
     {
         $semua = [
             'nama' => ['Nama', '<strong>{{nama}}</strong>'],
@@ -70,7 +112,7 @@ class LayananSeeder extends Seeder
             'alamat' => ['Alamat', $this->alamat()],
         ];
 
-        return $this->tabel(collect($kolom)->mapWithKeys(fn ($k) => [$semua[$k][0] => $semua[$k][1]])->all(), 30);
+        return $this->tabel(collect($kolom)->mapWithKeys(fn ($k) => [($label[$k] ?? $semua[$k][0]) => $semua[$k][1]])->all(), 30);
     }
 
     private function judul(string $judul, bool $nomor = true): string
@@ -88,14 +130,14 @@ class LayananSeeder extends Seeder
 
     private function pembukaLurah(string $tambahan = 'menerangkan bahwa :'): string
     {
-        return $this->p('Yang bertanda tangan di bawah ini {{jabatan_ttd}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} '.$tambahan);
+        return $this->p('Yang bertanda tangan dibawah ini {{jabatan_ttd}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} '.$tambahan);
     }
 
     /** "Yang bertanda tangan di bawah ini atas nama Lurah, Kepala Seksi ..." + tabel nama/NIP/jabatan Kasi. */
     private function pembukaKasi(string $bidang): string
     {
-        return $this->p('Yang bertanda tangan di bawah ini atas nama Lurah {{nama_kelurahan}}, '.self::JABATAN_KASI[$bidang].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} :')
-            .$this->tabel(['Nama' => '<strong>{{nama_kasi_'.$bidang.'}}</strong>', 'NIP' => '{{nip_kasi_'.$bidang.'}}', 'Jabatan' => self::JABATAN_KASI[$bidang]], 30);
+        return $this->p('Yang bertanda tangan di bawah ini atas nama Lurah {{nama_kelurahan}}, '.self::KEPALA_SEKSI[$bidang].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} :')
+            .$this->tabel(['Nama' => '<strong>{{nama_kasi_'.$bidang.'}}</strong>', 'NIP' => '{{nip_kasi_'.$bidang.'}}', 'Jabatan' => self::KEPALA_SEKSI[$bidang]], 30);
     }
 
     private function keperluan(string $pengantar = 'Surat Keterangan ini diberikan untuk keperluan :'): string
@@ -210,12 +252,12 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP Almarhum/Almarhumah\nKartu Keluarga\nKTP Pelapor\nSurat Keterangan Kematian dari RS/Puskesmas (opsional)",
                 'isian' => "Tanggal Meninggal | tanggal\nPukul | teks (opsional)\nTempat Meninggal | teks\nSebab Meninggal | teks\nNama Pelapor | teks\nNIK Pelapor | teks (opsional)\nHubungan Pelapor | teks\nAlamat Pelapor | paragraf (opsional)\nNo HP Pelapor | teks (opsional)",
                 'html' => $this->judul('Surat Keterangan Kematian').$this->p('Yang bertanda tangan di bawah ini menerangkan bahwa :')
-                    .$this->tabel(['Nama' => '<strong>{{nama}}</strong>', 'Tempat, Tgl. Lahir / Umur' => '{{ttl}} / {{umur}} Tahun', 'Jenis Kelamin' => '{{jenis_kelamin}}', 'Agama' => '{{agama}}', 'NIK' => '{{nik}}', 'Alamat Terakhir' => $this->alamat()], 30)
+                    .$this->tabel(['Nama' => '<strong>{{nama}}</strong>', 'T,Tanggal Lahir / Umur' => '{{ttl}} / {{umur}} Tahun', 'Jenis Kelamin' => '{{jenis_kelamin}}', 'Agama' => '{{agama}}', 'NIK' => '{{nik}}', 'Alamat terakhir' => $this->alamat()], 30)
                     .$this->p('Telah meninggal dunia pada :')
-                    .$this->tabel(['Tanggal' => '{{tanggal_meninggal}}', 'Pukul' => '{{pukul}}', 'Tempat Kematian' => '{{tempat_meninggal}}', 'Disebabkan Karena' => '{{sebab_meninggal}}'], 30)
+                    .$this->tabel(['Hari/Tanggal' => '{{tanggal_meninggal}}', 'Pukul' => '{{pukul}}', 'Tempat Kematian' => '{{tempat_meninggal}}', 'Disebabkan karena' => '{{sebab_meninggal}}'], 30)
                     .$this->p('Surat Keterangan ini dibuat atas dasar yang sebenarnya :')
-                    .$this->tabel(['Nama yang Melapor' => '{{nama_pelapor}}', 'NIK' => '{{nik_pelapor}}', 'Hubungan dengan yang Meninggal' => '{{hubungan_pelapor}}', 'Alamat Pelapor' => '{{alamat_pelapor}}', 'No. HP' => '{{no_hp_pelapor}}'], 30)
-                    .$this->ttdLurah(),
+                    .$this->tabel(['Nama yang melapor' => '{{nama_pelapor}}', 'NIK' => '{{nik_pelapor}}', 'Hubungan dengan yang meninggal' => '{{hubungan_pelapor}}', 'Alamat Pelapor' => '{{alamat_pelapor}}', 'No. HP' => '{{no_hp_pelapor}}'], 30)
+                    .$this->kolomKanan($this->tengah('{{kecamatan}}, {{tanggal_surat}}').$this->tengah('{{jabatan_ttd}},', true).$this->namaTtd('{{nama_lurah}}', '{{nip_lurah}}')),
             ],
             [
                 'slug' => 'pindah', 'nama' => 'Surat Keterangan Pindah', 'kode_surat' => '476', 'folder' => '08 - Keterangan Pindah', 'ikon' => 'truck', 'bidang' => 'pemerintahan',
@@ -234,9 +276,9 @@ class LayananSeeder extends Seeder
                 'slug' => 'orang-yang-sama', 'nama' => 'Surat Keterangan Orang Yang Sama', 'kode_surat' => '470', 'folder' => '10 - Keterangan Orang Yang Sama', 'ikon' => 'person-badge', 'bidang' => 'pemerintahan',
                 'deskripsi' => 'Keterangan bahwa nama yang berbeda di KTP/KK/SHM/akta adalah orang yang sama (kesalahan penulisan nama).',
                 'persyaratan' => "KTP\nKartu Keluarga\nDokumen yang Namanya Berbeda (SHM/Akta/Buku Nikah/Ijazah)\n$rt",
-                'isian' => "Dasar Dokumen | paragraf\nNama pada Dokumen Lain | paragraf",
+                'isian' => 'Nama pada Dokumen Lain | paragraf',
                 'html' => $this->judul('Surat Keterangan')
-                    .$this->p('Yang bertanda tangan di bawah ini atas nama Lurah {{nama_kelurahan}} '.self::JABATAN_KASI['pemerintahan'].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} menerangkan dengan dasar {{dasar_dokumen}}, dengan ini menerangkan bahwa :')
+                    .$this->p('Yang bertanda tangan di bawah ini atas nama Lurah {{nama_kelurahan}}, '.self::JABATAN_KASI['pemerintahan'].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} menerangkan dengan dasar NIK KTP Elektronik : {{nik}} yang dikeluarkan oleh Dinas Kependudukan dan Pencatatan Sipil Kabupaten {{kabupaten}}, dengan ini menerangkan bahwa :')
                     .$this->dataDiri(['nama', 'ttl', 'jk', 'kawin', 'agama', 'wn', 'kerja', 'alamat'])
                     .$this->p('adalah <strong>orang yang sama</strong> dengan {{nama_pada_dokumen_lain}}.')
                     .$this->p('Hal tersebut terjadi karena adanya kesalahan/kekeliruan redaksional pada penulisan nama yang bersangkutan.')
@@ -248,8 +290,8 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP Pelapor\nFotokopi Sertifikat Hak Milik (SHM)\n$rt",
                 'isian' => "Nomor SHM | teks\nTanggal SHM | tanggal\nAtas Nama SHM | teks\nRT Lokasi Tanah | teks\nRW Lokasi Tanah | teks\nKelurahan Asal | teks",
                 'html' => $this->judul('Surat Keterangan').$this->pembukaKasi('pemerintahan')
-                    .$this->p('Sehubungan dengan permohonan dari pelapor atas nama <strong>{{nama}}</strong> dengan NIK e-KTP {{nik}} dengan ini kami menerangkan bahwa sebidang tanah dengan Sertifikat Hak Milik Nomor : <strong>{{nomor_shm}}</strong> yang dikeluarkan tanggal {{tanggal_shm}} an. {{atas_nama_shm}} yang diterbitkan oleh Kantor Pertanahan Kabupaten {{kabupaten}}, berdasarkan PERDA No. 7 Tahun 2008 sekarang berada di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} yang merupakan hasil pemekaran dari Kelurahan {{kelurahan_asal}}.')
-                    .$this->p(self::PENUTUP).$this->ttdKasi('pemerintahan'),
+                    .$this->p('Sehubungan dengan permohonan dari pelapor an. <strong>{{nama}}</strong> NIK. {{nik}} dengan ini kami menerangkan bahwa sebidang tanah dengan dasar SHM No. <strong>{{nomor_shm}}</strong> Tanggal {{tanggal_shm}} an. {{atas_nama_shm}} yang telah diperiksa dan sesuai dengan daftar di Kepala Kantor Pertanahan Kabupaten {{kabupaten}}, berdasarkan PERDA No. 7 Tahun 2008 sekarang berada di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} yang merupakan hasil pemekaran dari Kelurahan {{kelurahan_asal}}.')
+                    .$this->p('Demikian Surat keterangan ini diberikan untuk dapat dipergunakan sebagaimana mestinya').$this->ttdKasi('pemerintahan'),
             ],
             [
                 'slug' => 'skbb', 'nama' => 'Surat Keterangan Berkelakuan Baik (SKBB)', 'kode_surat' => '300', 'folder' => '12 - Keterangan Berkelakuan Baik', 'ikon' => 'patch-check', 'bidang' => 'pemerintahan',
@@ -257,10 +299,10 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP\nKartu Keluarga\n$rt",
                 'isian' => 'Keperluan | paragraf',
                 'html' => $this->judul('Surat Keterangan Berkelakuan Baik')
-                    .$this->p('Yang bertanda tangan di bawah ini '.self::JABATAN_KASI['pemerintahan'].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} menerangkan bahwa :')
-                    .$this->dataDiri(['nama', 'ttl', 'jk', 'kawin', 'agama', 'wn', 'nik', 'alamat'])
-                    .$this->p('Yang bersangkutan memang benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} dan mempunyai <strong>Kelakuan yang Baik</strong> serta tidak terlibat Tindak Pidana.')
-                    .$this->keperluan('Surat Keterangan ini diberikan guna keperluan :').$this->p(self::PENUTUP).$this->ttdKasi('pemerintahan'),
+                    .$this->p('Yang bertanda tangan di bawah ini atas nama Lurah {{nama_kelurahan}}, '.self::KEPALA_SEKSI['pemerintahan'].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} menerangkan bahwa :')
+                    .$this->dataDiri(['nama', 'nik', 'ttl', 'jk', 'kerja', 'agama', 'wn', 'alamat'], ['kerja' => 'Jenis Pekerjaan'])
+                    .$this->keperluan('Yang bersangkutan memang benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} dan mempunyai <strong>Kelakuan yang baik</strong> serta tidak terlibat Tindak Pidana. Surat Keterangan ini diberikan guna keperluan :')
+                    .$this->p(self::PENUTUP).$this->ttdKasi('pemerintahan'),
             ],
             [
                 'slug' => 'harga-tanah', 'nama' => 'Surat Keterangan Harga Tanah', 'kode_surat' => '593', 'folder' => '13 - Keterangan Harga Tanah', 'ikon' => 'cash-coin', 'bidang' => 'pemerintahan',
@@ -268,9 +310,9 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP Pelapor\nFotokopi Sertifikat / Bukti Kepemilikan Tanah (opsional)\n$rt",
                 'isian' => "RT Lokasi Tanah | teks\nRW Lokasi Tanah | teks\nHarga Terendah per Meter | teks\nHarga Tertinggi per Meter | teks\nKeperluan | paragraf",
                 'html' => $this->judul('Surat Keterangan Harga Tanah').$this->pembukaKasi('pemerintahan')
-                    .$this->p('Berdasarkan permintaan pelapor an. <strong>{{nama}}</strong> yang beralamat di {{alamat}} RT. {{rt}} RW. {{rw}} dan keterangan dari Ketua RT. {{rt_lokasi_tanah}}/{{rw_lokasi_tanah}}, dengan ini menerangkan bahwa tanah di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} memiliki taksiran harga tanah &plusmn; <strong>{{harga_terendah_per_meter}} s/d {{harga_tertinggi_per_meter}}</strong> per meter.')
+                    .$this->p('Berdasarkan permintaan pelapor an. <strong>{{nama}}</strong> yang beralamat di {{alamat}} RT. {{rt}} RW. {{rw}} dan keterangan dari Ketua RT. {{rt_lokasi_tanah}}/{{rw_lokasi_tanah}}, dengan ini menerangkan bahwa tanah di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} memiliki taksiran harga tanah = &plusmn; <strong>{{harga_terendah_per_meter}} s/d {{harga_tertinggi_per_meter}}</strong> per Meter.')
                     .$this->p('Surat Keterangan Harga Tanah ini dibuat sebagai bahan persyaratan untuk {{keperluan}}.')
-                    .$this->p('Demikian Surat Keterangan ini dibuat sebagai bahan selanjutnya, dan apabila di kemudian hari terdapat kesalahan akan dilakukan perbaikan sebagaimana mestinya.')
+                    .$this->p('Demikian Surat keterangan ini dibuat sebagai bahan selanjutnya, dan apabila dikemudian terdapat kesalahan akan dilakukan perbaikan sebagaimana mestinya.')
                     .$this->ttdKasi('pemerintahan'),
             ],
             [
@@ -280,11 +322,11 @@ class LayananSeeder extends Seeder
                 'isian' => "Letak Tanah | paragraf\nNama Penerima Hibah | teks\nTempat Lahir Penerima | teks\nTanggal Lahir Penerima | tanggal\nNIK Penerima | teks\nJenis Kelamin Penerima | teks\nPekerjaan Penerima | teks\nAlamat Penerima | paragraf\nBatas Utara | teks (opsional)\nBatas Timur | teks (opsional)\nBatas Selatan | teks (opsional)\nBatas Barat | teks (opsional)\nSaksi 1 | teks\nSaksi 2 | teks (opsional)\nSaksi 3 | teks (opsional)",
                 'html' => $this->judul('Surat Pernyataan Hibah', false).$this->p('Yang bertanda tangan di bawah ini :')
                     .$this->dataDiri(['nama', 'ttl', 'nik', 'jk', 'kerja', 'alamat'])
-                    .$this->p('(Selaku Pihak yang Menghibahkan)', 'center')
+                    .$this->p('(Selaku Pihak Yang Menghibahkan)', 'center')
                     .$this->p('dengan ini menyatakan dengan sebenarnya dan dalam keadaan sadar bahwa Saya <strong>TELAH MENGHIBAHKAN</strong> sebidang tanah yang terletak di {{letak_tanah}}, kepada :')
                     .$this->tabel(['Nama' => '<strong>{{nama_penerima_hibah}}</strong>', 'Tempat, Tanggal Lahir' => '{{tempat_lahir_penerima}}, {{tanggal_lahir_penerima}}', 'NIK' => '{{nik_penerima}}', 'Jenis Kelamin' => '{{jenis_kelamin_penerima}}', 'Pekerjaan' => '{{pekerjaan_penerima}}', 'Alamat' => '{{alamat_penerima}}'], 30)
                     .$this->p('(Selaku Pihak Penerima Hibah)', 'center')
-                    .$this->p('adapun batas tanah tersebut sebagai berikut :')
+                    .$this->p('adapun ukuran dan batas tanah tersebut sebagai berikut :')
                     .$this->tabel(['Sebelah Utara' => '{{batas_utara}}', 'Sebelah Timur' => '{{batas_timur}}', 'Sebelah Selatan' => '{{batas_selatan}}', 'Sebelah Barat' => '{{batas_barat}}'], 30)
                     .$this->p('mengenai asal tanah di atas adalah :')
                     .'<ol><li>Tanah tersebut berasal dari milik Saya sendiri.</li><li>Tanah tersebut tidak dalam sengketa, baik batas maupun kepemilikannya.</li><li>Tanah tersebut tidak dijadikan sesuatu jaminan piutang.</li><li>Setelah tanah dihibahkan maka Saya tidak berhak lagi atas tanah tersebut, demikian pula ahli waris Saya.</li><li>Apabila di kemudian hari pernyataan ini tidak benar, maka Saya bersedia dituntut sesuai dengan Perundang-undangan yang berlaku.</li></ol>'
@@ -309,9 +351,9 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP\nKartu Keluarga\nSurat Pernyataan Tidak Mampu (opsional)\n$rt",
                 'isian' => 'Keperluan | paragraf',
                 'html' => $this->judul('Surat Keterangan Tidak Mampu').$this->pembukaLurah()
-                    .$this->dataDiri(['nama', 'jk', 'ttl', 'nik', 'kk', 'kerja', 'agama', 'wn', 'alamat'])
-                    .$this->p('Berdasarkan Surat Keterangan dari Ketua RT setempat dan Surat Pernyataan yang bersangkutan, bahwa yang bersangkutan adalah benar Penduduk Kelurahan {{nama_kelurahan}} dan ekonomi keluarganya tergolong <strong>tidak mampu</strong>.')
-                    .$this->keperluan().$this->p('Demikian Surat Keterangan ini diberikan untuk dapat diketahui dan dipergunakan sebagaimana mestinya.').$this->ttdLurah(),
+                    .$this->dataDiri(['nama', 'jk', 'ttl', 'nik', 'kk', 'kerja', 'agama', 'wn', 'alamat'], ['nama' => 'NAMA', 'ttl' => 'Tempat Tanggal Lahir', 'nik' => 'Nomor KTP'])
+                    .$this->keperluan('Berdasarkan Surat Keterangan dari Ketua RT setempat dan Surat Pernyataan yang bersangkutan, bahwa yang bersangkutan adalah benar Penduduk Kelurahan {{nama_kelurahan}} dan Ekonomi Keluarganya tergolong masyarakat <strong>Tidak Mampu</strong>, dan Surat Keterangan ini diberikan untuk keperluan :')
+                    .$this->p('Demikian Surat Keterangan ini diberikan untuk dapat diketahui dan dipergunakan sebagaimana mestinya.').$this->ttdLurah(),
             ],
             [
                 'slug' => 'belum-menikah', 'nama' => 'Surat Keterangan Belum Menikah', 'kode_surat' => '400.9', 'folder' => '09 - Keterangan Belum Menikah', 'ikon' => 'person-check', 'bidang' => 'kesos',
@@ -319,19 +361,19 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP\nKartu Keluarga\n$rt",
                 'isian' => 'Keperluan | paragraf',
                 'html' => $this->judul('Surat Keterangan Belum Menikah').$this->pembukaLurah()
-                    .$this->dataDiri(['nama', 'jk', 'ttl', 'agama', 'wn', 'nik', 'kk', 'kerja', 'alamat'])
-                    .$this->p('Berdasarkan surat keterangan dari Ketua RT setempat, yang bersangkutan adalah benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} dan sampai saat ini benar <strong>Belum Menikah</strong>.')
-                    .$this->keperluan().$this->p(self::PENUTUP).$this->ttdLurah(),
+                    .$this->dataDiri(['nama', 'jk', 'ttl', 'agama', 'wn', 'nik', 'kk', 'kerja', 'alamat'], ['nik' => 'Nomor NIK'])
+                    .$this->keperluan('Berdasarkan surat keterangan dari Ketua RT setempat yang bersangkutan adalah benar-benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} dan yang bersangkutan sampai saat ini benar benar <strong>Belum Menikah</strong>, dan Surat Keterangan ini diberikan untuk keperluan :')
+                    .$this->p(self::PENUTUP).$this->ttdLurah(),
             ],
             [
                 'slug' => 'belum-bekerja', 'nama' => 'Surat Keterangan Belum Bekerja', 'kode_surat' => '400.9', 'folder' => '15 - Keterangan Belum Bekerja', 'ikon' => 'briefcase', 'bidang' => 'kesos',
                 'deskripsi' => 'Keterangan belum/tidak memiliki pekerjaan (mis. untuk KPR, beasiswa, melamar kerja).',
                 'persyaratan' => "KTP\nKartu Keluarga\n$rt",
                 'isian' => 'Keperluan | paragraf',
-                'html' => $this->judul('Surat Keterangan Belum Bekerja').$this->pembukaLurah().$this->dataDiri()
-                    .$this->p('Yang bersangkutan memang benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} dan benar selama ini yang bersangkutan <strong>Belum / Tidak Memiliki Pekerjaan</strong>.')
+                'html' => $this->judul('Surat Keterangan Belum Bekerja').$this->pembukaLurah().$this->dataDiri(label: ['nik' => 'Nomor KTP'])
+                    .$this->p('Yang bersangkutan memang benar-benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} dan benar selama ini yang bersangkutan <strong>Belum / Tidak Memiliki Pekerjaan</strong>.')
                     .$this->keperluan('Surat Keterangan ini diperlukan untuk keperluan :')
-                    .$this->p('Demikian Surat Keterangan ini diberikan untuk dapat diketahui dan dipergunakan sebagaimana mestinya.').$this->ttdLurah(),
+                    .$this->p('Demikian Surat keterangan ini diberikan untuk dapat diketahui dan dipergunakan sebagaimana mestinya.').$this->ttdLurah(),
             ],
             [
                 'slug' => 'duda-janda', 'nama' => 'Surat Keterangan Kedudaan / Kejandaan', 'kode_surat' => '400.9', 'folder' => '16 - Keterangan Duda-Janda', 'ikon' => 'person-x', 'bidang' => 'kesos',
@@ -339,17 +381,17 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP\nKartu Keluarga\nAkta Cerai / Akta Kematian Pasangan\n$rt",
                 'isian' => "Status Duda atau Janda | teks\nKeterangan Perceraian | teks\nKeperluan | paragraf",
                 'html' => $this->judul('Surat Keterangan').$this->pembukaLurah()
-                    .$this->dataDiri(['nama', 'jk', 'ttl', 'agama', 'wn', 'nik', 'kk', 'kerja', 'alamat'])
-                    .$this->p('Berdasarkan surat keterangan dari Ketua RT setempat, yang bersangkutan adalah benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} dan sampai saat ini benar berstatus <strong>{{status_duda_atau_janda}}</strong> ({{keterangan_perceraian}}) serta belum menikah lagi.')
-                    .$this->keperluan().$this->p(self::PENUTUP).$this->ttdLurah(),
+                    .$this->dataDiri(['nama', 'jk', 'ttl', 'agama', 'wn', 'nik', 'kk', 'kerja', 'alamat'], ['nik' => 'Nomor NIK'])
+                    .$this->keperluan('Berdasarkan surat keterangan dari Ketua RT setempat yang bersangkutan adalah benar-benar Penduduk Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} dan yang bersangkutan sampai saat ini benar benar berstatus <strong>{{status_duda_atau_janda}}</strong> ({{keterangan_perceraian}}) serta belum menikah lagi, dan Surat Keterangan ini diberikan untuk keperluan :')
+                    .$this->p(self::PENUTUP).$this->ttdLurah(),
             ],
             [
                 'slug' => 'tidak-memiliki-rumah', 'nama' => 'Surat Pernyataan Tidak Memiliki Rumah', 'kode_surat' => '400.10', 'folder' => '17 - Pernyataan Tidak Memiliki Rumah', 'ikon' => 'house-dash', 'bidang' => 'kesos',
                 'deskripsi' => 'Pernyataan warga tidak memiliki rumah sendiri, diketahui Lurah (mis. untuk KPR subsidi).',
                 'persyaratan' => "KTP\nKartu Keluarga\nMaterai 10.000\n$rt",
                 'isian' => '',
-                'html' => $this->judul('Surat Pernyataan Tidak Memiliki Rumah', false).$this->p('Saya yang bertanda tangan di bawah ini :')
-                    .$this->dataDiri(['nama', 'ttl', 'jk', 'wn', 'nik', 'alamat'])
+                'html' => $this->judul('Surat Pernyataan Tidak Memiliki Rumah', false).$this->p('Saya yang bertanda tangan dibawah ini :')
+                    .$this->dataDiri(['nama', 'ttl', 'jk', 'wn', 'nik', 'alamat'], ['nama' => 'Nama Lengkap', 'nik' => 'Nomor KTP'])
                     .$this->p('Menyatakan bahwa sampai dengan surat pernyataan ini dibuat, benar saya <strong>tidak memiliki hak kepemilikan atas rumah</strong> (tidak memiliki rumah sendiri).')
                     .$this->p('Demikian Surat Pernyataan ini saya buat dengan sebenar-benarnya agar dapat digunakan sebagaimana mestinya.')
                     .$this->duaKolom(
@@ -375,9 +417,11 @@ class LayananSeeder extends Seeder
                 'deskripsi' => 'Keterangan tempat/alamat usaha berada di Kelurahan Sekumpul (mis. pangkalan LPG, toko).',
                 'persyaratan' => "KTP\nKartu Keluarga\nFoto Tempat Usaha (opsional)\n$rt",
                 'isian' => "Jenis Usaha | teks\nAlamat Usaha | paragraf",
-                'html' => $this->judul('Surat Keterangan Domisili Usaha').$this->pembukaKasi('pm').$this->p('Dengan ini menerangkan bahwa :')
-                    .$this->tabel(['Nama' => '<strong>{{nama}}</strong>', 'NIK' => '{{nik}}', 'Alamat' => $this->alamat()], 30)
-                    .$this->p('Berdasarkan Surat Pengantar Ketua RT setempat, bahwa yang bersangkutan mempunyai usaha <strong>{{jenis_usaha}}</strong> yang beralamat di {{alamat_usaha}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}.')
+                'html' => $this->judul('Surat Keterangan Domisili Usaha').$this->p('Yang bertanda tangan dibawah ini:')
+                    .$this->tabel(['Nama' => '<strong>{{nama_kasi_pm}}</strong>', 'NIP' => '{{nip_kasi_pm}}', 'Jabatan' => self::JABATAN_KASI['pm']], 30)
+                    .$this->p('Dengan ini menerangkan bahwa :')
+                    .$this->tabel(['Nama' => '<strong>{{nama}}</strong>', 'Alamat' => '{{alamat}} RT. {{rt}} RW. {{rw}}'], 30)
+                    .$this->p('Berdasarkan dari Surat Pengantar Ketua RT setempat, bahwa Mempunyai Usaha <strong>{{jenis_usaha}}</strong> yang beralamat di {{alamat_usaha}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}.')
                     .$this->p(self::PENUTUP).$this->ttdKasi('pm'),
             ],
             [
@@ -386,9 +430,9 @@ class LayananSeeder extends Seeder
                 'persyaratan' => "KTP\nKartu Keluarga\n$rt",
                 'isian' => "Jenis Usaha atau Pekerjaan | teks\nLama Usaha atau Kerja | teks\nPenghasilan per Bulan | teks\nTempat Usaha atau Kerja | paragraf\nKeperluan | paragraf",
                 'html' => $this->judul('Surat Keterangan Penghasilan').$this->pembukaLurah()
-                    .$this->dataDiri(['nama', 'ttl', 'jk', 'wn', 'nik', 'alamat'])
-                    .$this->p('Berdasarkan keterangan Pemohon dan pengantar Ketua RT setempat bahwa yang bersangkutan memiliki usaha / pekerjaan dan penghasilan sebagai berikut :')
-                    .$this->tabel(['Jenis Usaha / Pekerjaan' => '<strong>{{jenis_usaha_atau_pekerjaan}}</strong>', 'Lama Usaha / Kerja' => '{{lama_usaha_atau_kerja}}', 'Penghasilan Rata-rata' => '{{penghasilan_per_bulan}} / bulan', 'Tempat Usaha / Kerja' => '{{tempat_usaha_atau_kerja}}', 'Keperluan' => '{{keperluan}}'], 30)
+                    .$this->dataDiri(['nama', 'ttl', 'jk', 'wn', 'nik', 'alamat'], ['nama' => 'Nama Lengkap'])
+                    .$this->p('Berdasarkan dari keterangan Pemohon dan pengantar Ketua RT setempat bahwa yang bersangkutan memiliki usaha / pekerjaan dan penghasilan sebagai berikut :')
+                    .$this->tabel(['Jenis Usaha / Pekerjaan' => '<strong>{{jenis_usaha_atau_pekerjaan}}</strong>', 'Lama Usaha / Kerja' => '{{lama_usaha_atau_kerja}}', 'Penghasilan Rata-rata' => '{{penghasilan_per_bulan}} / Perbulan', 'Tempat Usaha / Kerja' => '{{tempat_usaha_atau_kerja}}', 'Keperluan' => '{{keperluan}}'], 30)
                     .$this->p('Demikian Surat Keterangan Penghasilan ini kami buat dengan sebenar-benarnya untuk digunakan sebagaimana mestinya.')
                     .$this->duaKolom(
                         $this->tengah('Mengetahui,').$this->tengah('a.n. Lurah {{nama_kelurahan}}').$this->tengah(self::JABATAN_KASI['pm'].',', true).$this->namaTtd('{{nama_kasi_pm}}', '{{nip_kasi_pm}}'),
@@ -420,17 +464,23 @@ class LayananSeeder extends Seeder
                 'template_html' => $l['html'],
             ];
             $atur = ['bidang' => $l['bidang'], 'urutan' => $i + 1];
+            // Kolom nomor baru ada setelah migration format_nomor_per_layanan (migration lama juga memanggil pasang()).
+            $nomor = Schema::hasColumn('layanan', 'format_nomor')
+                ? ['buku_nomor' => self::NOMOR[$l['slug']][0], 'format_nomor' => self::NOMOR[$l['slug']][1]]
+                : [];
 
             $ada = Layanan::where('slug', $l['slug'])->first();
             if (! $ada) {
-                Layanan::create(['slug' => $l['slug'], 'folder' => $l['folder'], 'aktif' => true] + $nilai + $atur);
+                Layanan::create(['slug' => $l['slug'], 'folder' => $l['folder'], 'aktif' => true] + $nilai + $atur + $nomor);
 
                 continue;
             }
 
             $belumDiedit = in_array(md5((string) $ada->template_html), self::TEMPLATE_LAMA, true);
+            // Format nomor yang sudah diatur admin tidak ditimpa
+            $nomor = $timpaTemplate || ! $ada->format_nomor ? $nomor : [];
             // Folder arsip layanan lama tidak diubah, supaya arsip lama & baru tetap satu folder
-            $ada->update(($timpaTemplate || $belumDiedit ? $nilai : []) + $atur);
+            $ada->update(($timpaTemplate || $belumDiedit ? $nilai : []) + $atur + $nomor);
         }
     }
 }

@@ -16,6 +16,16 @@
             <input name="kode_surat" value="{{ old('kode_surat', $layanan->kode_surat) }}" class="form-control" placeholder="mis. 470">
             <div class="form-text">Dipakai di nomor surat sebagai {kode}.</div>
         </div>
+        <div class="col-md-8">
+            <label class="form-label">Format Nomor Surat</label>
+            <input name="format_nomor" value="{{ old('format_nomor', $layanan->format_nomor) }}" class="form-control font-monospace" placeholder="kosong = pakai format di Profil Kelurahan">
+            <div class="form-text">Mis. <code>{no} / KS-Pem / {bulan_romawi} / {tahun}</code>. Pilihan: <code>{no}</code> <code>{kode}</code> <code>{bulan_romawi}</code> <code>{bulan}</code> <code>{tahun}</code>.</div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Buku Nomor</label>
+            <input name="buku_nomor" value="{{ old('buku_nomor', $layanan->buku_nomor) }}" class="form-control" placeholder="mis. pemerintahan">
+            <div class="form-text">Surat dengan buku sama memakai nomor urut bersama, lanjut dari nomor terakhir.</div>
+        </div>
         <div class="col-md-6">
             <label class="form-label">Dikerjakan oleh</label>
             <select name="bidang" class="form-select">

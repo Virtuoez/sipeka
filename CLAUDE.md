@@ -86,6 +86,11 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - 19 template mengikuti format surat kantor (contoh asli di `D:\projek sekumpul\kasi *`, BERISI DATA WARGA ASLI, jangan di-commit).
   Penanda penandatangan Kasi: `{{nama_kasi_pemerintahan}}`, `{{nip_kasi_kesos}}`, dst (isi di Profil Kelurahan).
   `LayananSeeder::pasang(false)` (dipakai migration) hanya menimpa template yang md5-nya cocok `TEMPLATE_LAMA` (belum diedit admin).
+  Kalau template bawaan diubah lagi: tambahkan md5 versi sekarang ke `TEMPLATE_LAMA` + buat migration yang memanggil `pasang(false)`.
+- Nomor surat: `layanan.format_nomor` (mis. `{no} / KS-Pem / {bulan_romawi} / {tahun}`, `472. M / {no} / ...`, `400.9/{no}/Kel.SKP`)
+  + `layanan.buku_nomor` (pemerintahan / kematian / kesos / pm). `SuratService::nomorSuratBerikutnya` = nomor TERBESAR di buku itu
+  tahun ini + 1 (`ambilUrut` membaca {no} dari nomor jadi), jadi Kasi cukup sekali mengetik nomor buku kantor.
+- Logo kop bawaan `resources/img/logo-kabupaten-banjar.png` (dari surat kantor) bila Profil Kelurahan belum punya logo.
 - `.neon`, `neon.ts`, perubahan `package.json`/`package-lock.json` dari `neon init` sengaja TIDAK di-commit (alat lokal).
 
 ## Data sensitif

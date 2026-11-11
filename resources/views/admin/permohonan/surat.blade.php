@@ -25,6 +25,7 @@
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Nomor Surat</label>
                         <input name="nomor_surat" value="{{ old('nomor_surat', $p->nomor_surat) }}" class="form-control" required>
+                        <div class="form-text">Terisi otomatis, lanjut dari nomor terakhir. Kalau belum sama dengan buku nomor kantor, ganti sekali saja; surat berikutnya ikut lanjut.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Tanggal Surat</label>
