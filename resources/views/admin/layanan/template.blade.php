@@ -55,6 +55,17 @@
 @if ($word && ! $wordUnggahan && is_file(resource_path('surat/contoh/'.$layanan->slug.'.pdf')))
     <div class="card mb-3">
         <div class="card-header small fw-semibold">Tampilan surat yang dicetak (contoh, data fiktif)</div>
+        @php($s = \App\Models\Pengaturan::semua())
+        <div class="card-body small py-2 border-bottom bg-light">
+            <i class="bi bi-info-circle"></i> Nama &amp; NIP pejabat di contoh ini hanya contoh. Surat asli otomatis memakai
+            <a href="{{ route('admin.pengaturan') }}">Profil Kelurahan</a>:
+            Lurah <b>{{ $s['nama_lurah'] }}</b> (NIP {{ $s['nip_lurah'] }})
+            @foreach (\App\Models\Layanan::BIDANG as $k => $label)
+                &middot; {{ $label }} <b>{{ $s['nama_kasi_'.$k] }}</b>
+            @endforeach
+            &middot; Camat <b>{{ $s['nama_camat'] }}</b>.
+            Klik <b>Coba Isi</b> di atas untuk melihat surat dengan nama-nama ini.
+        </div>
         <iframe src="{{ route('admin.layanan.contoh-word', $layanan) }}#toolbar=0&view=FitH" style="width: 100%; height: 900px; border: 0"></iframe>
     </div>
 @endif

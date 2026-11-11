@@ -187,6 +187,12 @@ class SuratWordTest extends TestCase
         $this->actingAs($admin)->get('/admin/layanan/pindah/template')->assertOk()->assertSee('dicetak dari file Excel')->assertSee('contoh-word');
         $this->actingAs($admin)->get("/admin/layanan/{$pem->slug}/template")->assertOk()
             ->assertSee('dicetak dari file Word')->assertSee('contoh-word')->assertDontSee('Pratinjau PDF');
+        // Nama pejabat dari Profil Kelurahan masuk ke surat Word
+        \App\Models\Pengaturan::simpan(['nama_kasi_pemerintahan' => 'KASI UJI, S.AP', 'nip_kasi_pemerintahan' => '19780000 000000 1 000']);
+        $this->actingAs($admin)->get("/admin/layanan/{$pem->slug}/template")->assertSee('KASI UJI, S.AP');
+        $teks = $this->teksDocx(app(SuratService::class)->docxDariWord($this->permohonan($pem, 9), SuratService::templateWord($pem)));
+        $this->assertStringContainsString('KASI UJI, S.AP', $teks);
+        $this->assertStringContainsString('19780000 000000 1 000', $teks);
         $this->actingAs($admin)->get("/admin/layanan/{$pem->slug}/contoh-word")->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->actingAs($admin)->get('/admin/layanan/domisili/template')->assertOk()->assertSee('Pratinjau PDF');
     }
