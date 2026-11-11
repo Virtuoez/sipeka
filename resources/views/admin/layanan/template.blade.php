@@ -8,8 +8,10 @@
         <h5 class="fw-bold mb-0 mt-1">Template: {{ $layanan->nama }}</h5>
     </div>
     <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-danger btn-sm" onclick="pratinjau('pdf')"><i class="bi bi-file-earmark-pdf"></i> Pratinjau PDF</button>
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="pratinjau('docx')"><i class="bi bi-file-earmark-word"></i> Pratinjau Word</button>
+        @unless ($word)
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="pratinjau('pdf')"><i class="bi bi-file-earmark-pdf"></i> Pratinjau PDF</button>
+        @endunless
+        <button type="button" class="btn btn-{{ $word ? '' : 'outline-' }}primary btn-sm" onclick="pratinjau('docx')"><i class="bi bi-file-earmark-word"></i> {{ $word ? 'Coba Isi Word (data contoh)' : 'Pratinjau Word' }}</button>
     </div>
 </div>
 
@@ -44,7 +46,18 @@
     </div>
 </div>
 
-<div class="row g-3">
+@if ($word && ! $wordUnggahan && is_file(resource_path('surat/contoh/'.$layanan->slug.'.pdf')))
+    <div class="card mb-3">
+        <div class="card-header small fw-semibold">Tampilan surat yang dicetak (contoh, data fiktif)</div>
+        <iframe src="{{ route('admin.layanan.contoh-word', $layanan) }}#toolbar=0&view=FitH" style="width: 100%; height: 900px; border: 0"></iframe>
+    </div>
+@endif
+
+@if ($word)
+<details class="mb-3">
+    <summary class="small text-muted">Template cadangan (tidak dipakai selama file Word ada)</summary>
+@endif
+<div class="row g-3 mt-1">
     <div class="col-xl-9">
         <form method="post" action="{{ route('admin.layanan.simpan-template', $layanan) }}" id="formTemplate">
             @csrf @method('PUT')
@@ -79,6 +92,9 @@
         <p class="small text-muted mt-2">Penanda akan otomatis diganti data pemohon saat surat dibuat. Kop surat diatur di menu <a href="{{ route('admin.pengaturan') }}">Profil Kelurahan</a>.</p>
     </div>
 </div>
+@if ($word)
+</details>
+@endif
 
 <form method="post" id="formPratinjau" target="_blank">
     @csrf

@@ -114,6 +114,18 @@ class SuratWordTest extends TestCase
         $this->assertStringContainsString('400.9/313/Kel.SKP', $this->teksDocx(ArsipService::disk()->get($folder[0])));
     }
 
+    public function test_menu_layanan_dan_template_menampilkan_word_kantor(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $pem = Layanan::where('slug', 'pemekaran')->firstOrFail();
+
+        $this->actingAs($admin)->get('/admin/layanan')->assertOk()->assertSee('Word kantor')->assertSee('Template website');
+        $this->actingAs($admin)->get("/admin/layanan/{$pem->slug}/template")->assertOk()
+            ->assertSee('dicetak dari file Word')->assertSee('contoh-word')->assertDontSee('Pratinjau PDF');
+        $this->actingAs($admin)->get("/admin/layanan/{$pem->slug}/contoh-word")->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->actingAs($admin)->get('/admin/layanan/domisili/template')->assertOk()->assertSee('Pratinjau PDF');
+    }
+
     public function test_layanan_tanpa_word_tetap_pakai_template_html(): void
     {
         $this->assertNull(SuratService::templateWord(Layanan::where('slug', 'domisili')->first()));

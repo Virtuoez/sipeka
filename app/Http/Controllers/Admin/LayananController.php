@@ -71,6 +71,15 @@ class LayananController extends Controller
         ]);
     }
 
+    /** Contoh tampilan surat Word bawaan (PDF dari Word, data fiktif) untuk dilihat di halaman Template. */
+    public function contohWord(Layanan $layanan)
+    {
+        $pdf = resource_path('surat/contoh/'.$layanan->slug.'.pdf');
+        abort_unless(preg_match('/^[a-z0-9\-_]+$/i', $layanan->slug) && is_file($pdf), 404);
+
+        return response()->file($pdf, ['Content-Type' => 'application/pdf']);
+    }
+
     /** Unduh file Word yang dipakai layanan ini (untuk diedit di Word lalu diunggah lagi). */
     public function unduhWord(Layanan $layanan)
     {
