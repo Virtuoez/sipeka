@@ -13,6 +13,37 @@
     </div>
 </div>
 
+<div class="card mb-3 {{ $word ? 'border-primary' : '' }}">
+    <div class="card-body">
+        <div class="fw-semibold mb-1"><i class="bi bi-file-earmark-word text-primary"></i> Template Word kantor</div>
+        @if ($word)
+            <p class="small mb-2">
+                Surat ini <b>dicetak dari file Word</b> ({{ $wordUnggahan ? 'unggahan' : 'bawaan, dari surat kantor' }}).
+                Editor di bawah hanya dipakai kalau file Word dihapus. Untuk mengubah surat: unduh Word-nya, ubah di Word
+                (biarkan tulisan seperti <code>${nama}</code>, <code>${nik}</code> karena itu diisi otomatis), lalu unggah lagi.
+            </p>
+        @else
+            <p class="small mb-2">Belum ada file Word. Surat dibuat dari editor di bawah. Bisa juga unggah file Word dengan penanda seperti <code>${nama}</code>, <code>${nik}</code>, <code>${nomor_surat}</code>.</p>
+        @endif
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            @if ($word)
+                <a href="{{ route('admin.layanan.word', $layanan) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Unduh template Word</a>
+            @endif
+            <form method="post" action="{{ route('admin.layanan.unggah-word', $layanan) }}" enctype="multipart/form-data" class="d-flex gap-2">
+                @csrf
+                <input type="file" name="template_word" accept=".docx" class="form-control form-control-sm" required>
+                <button class="btn btn-primary btn-sm text-nowrap"><i class="bi bi-upload"></i> Unggah</button>
+            </form>
+            @if ($wordUnggahan)
+                <form method="post" action="{{ route('admin.layanan.hapus-word', $layanan) }}" onsubmit="return confirm('Hapus template Word unggahan?{{ $wordBawaan ? ' Surat kembali memakai Word bawaan.' : '' }}')">
+                    @csrf @method('DELETE')
+                    <button class="btn btn-link btn-sm text-danger"><i class="bi bi-arrow-counterclockwise"></i> {{ $wordBawaan ? 'Kembali ke Word bawaan' : 'Hapus file Word' }}</button>
+                </form>
+            @endif
+        </div>
+    </div>
+</div>
+
 <div class="row g-3">
     <div class="col-xl-9">
         <form method="post" action="{{ route('admin.layanan.simpan-template', $layanan) }}" id="formTemplate">

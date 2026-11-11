@@ -153,31 +153,44 @@ class PermohonanController extends Controller
             $permohonan->save();
         }
 
+        $word = SuratService::templateWord($permohonan->layanan);
+        if ($word) {
+            // Surat dicetak dari file Word kantor: tampilkan data yang akan masuk ke surat
+            $nilai = $this->surat->nilaiWord($permohonan);
+            $penanda = array_values(array_unique((new \PhpOffice\PhpWord\TemplateProcessor($word))->getVariables()));
+
+            return view('admin.permohonan.surat-word', ['p' => $permohonan, 'penanda' => $penanda, 'nilai' => $nilai]);
+        }
+
         return view('admin.permohonan.surat', ['p' => $permohonan]);
     }
 
     public function simpanSurat(Permohonan $permohonan, Request $request)
     {
         $this->bolehKerjakan($permohonan, $request);
+        $permohonan->load('layanan');
+        $word = SuratService::templateWord($permohonan->layanan);
         $valid = $request->validate([
             'nomor_surat' => 'required|string|max:100',
             'tanggal_surat' => 'required|date',
-            'surat_html' => 'required|string',
+            'surat_html' => $word ? 'nullable|string' : 'required|string',
+            'surat_word' => 'nullable|file|mimes:docx|max:10240',
             'aksi' => 'required|in:simpan,selesai',
         ]);
 
-        $permohonan->load('layanan');
         $permohonan->fill([
             'nomor_surat' => $valid['nomor_surat'],
             'tanggal_surat' => $valid['tanggal_surat'],
-            'surat_html' => $valid['surat_html'],
         ]);
+        if (! $word) {
+            $permohonan->surat_html = $valid['surat_html'];
+        }
 
         if ($valid['aksi'] === 'selesai') {
             $permohonan->status = 'selesai';
             $permohonan->selesai_at = now();
             $permohonan->catatan = null;
-            $this->arsipkanSurat($permohonan);
+            $this->arsipkanSurat($permohonan, $request->file('surat_word'));
         }
         $permohonan->save();
 
@@ -185,7 +198,7 @@ class PermohonanController extends Controller
             return back()->with('ok', 'Draf surat disimpan.');
         }
 
-        $pesan = "Antrian No. {$permohonan->nomorLabel()} selesai. Surat (PDF + Word) sudah masuk folder arsip.";
+        $pesan = "Antrian No. {$permohonan->nomorLabel()} selesai. Surat (".($word ? 'Word' : 'PDF + Word').') sudah masuk folder arsip.';
 
         // Kasi kembali ke antrean: permohonan ini sudah hilang dari daftarnya.
         return $request->user()->isKasi()
@@ -209,10 +222,20 @@ class PermohonanController extends Controller
         $permohonan->load('layanan');
         abort_unless($permohonan->surat_html, 404, 'Surat belum dibuat.');
 
-        $html = $this->surat->final($permohonan);
-        $isi = $format === 'pdf' ? $this->surat->pdf($html) : $this->surat->docx($html);
-        if ($permohonan->status === 'selesai') {
-            $this->arsip->simpanSurat($permohonan, $isi, $format);
+        $word = SuratService::templateWord($permohonan->layanan);
+        if ($word) {
+            abort_unless($format === 'docx', 404, 'Surat ini dicetak dari file Word kantor. Unduh versi Word-nya.');
+            // Surat selesai: pakai file yang sudah diarsipkan (bisa jadi Word yang sudah diedit Kasi)
+            $arsip = $permohonan->folder_path.'/'.$this->arsip->namaFileSurat($permohonan, 'docx');
+            $isi = $permohonan->status === 'selesai' && $permohonan->folder_path && ArsipService::disk()->exists($arsip)
+                ? ArsipService::disk()->get($arsip)
+                : $this->surat->docxDariWord($permohonan, $word);
+        } else {
+            $html = $this->surat->final($permohonan);
+            $isi = $format === 'pdf' ? $this->surat->pdf($html) : $this->surat->docx($html);
+            if ($permohonan->status === 'selesai') {
+                $this->arsip->simpanSurat($permohonan, $isi, $format);
+            }
         }
 
         $mime = $format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -277,8 +300,17 @@ class PermohonanController extends Controller
         abort_unless($p->bolehDikerjakan($request->user()), 403, 'Ambil permohonan ini dari antrean dulu sebelum membuat surat.');
     }
 
-    private function arsipkanSurat(Permohonan $p): void
+    private function arsipkanSurat(Permohonan $p, ?\Illuminate\Http\UploadedFile $wordDiedit = null): void
     {
+        $word = SuratService::templateWord($p->layanan);
+        if ($word) {
+            // Word kantor; kalau Kasi mengunggah Word yang sudah diedit, file itulah yang diarsipkan
+            $isi = $wordDiedit ? $wordDiedit->get() : $this->surat->docxDariWord($p, $word);
+            $this->arsip->simpanSurat($p, $isi, 'docx');
+
+            return;
+        }
+
         $html = $this->surat->final($p);
         $this->arsip->simpanSurat($p, $this->surat->pdf($html), 'pdf');
         $this->arsip->simpanSurat($p, $this->surat->docx($html), 'docx');

@@ -75,6 +75,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/layanan/{layanan}/template', [Admin\LayananController::class, 'template'])->name('layanan.template');
         Route::put('/layanan/{layanan}/template', [Admin\LayananController::class, 'simpanTemplate'])->name('layanan.simpan-template');
         Route::post('/layanan/{layanan}/pratinjau/{format}', [Admin\LayananController::class, 'pratinjau'])->name('layanan.pratinjau');
+        Route::get('/layanan/{layanan}/word', [Admin\LayananController::class, 'unduhWord'])->name('layanan.word');
+        Route::post('/layanan/{layanan}/word', [Admin\LayananController::class, 'unggahWord'])->name('layanan.unggah-word');
+        Route::delete('/layanan/{layanan}/word', [Admin\LayananController::class, 'hapusWord'])->name('layanan.hapus-word');
     });
 
     // Khusus admin

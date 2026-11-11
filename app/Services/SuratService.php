@@ -13,6 +13,7 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Html;
+use PhpOffice\PhpWord\TemplateProcessor;
 
 /**
  * Mengisi template surat dengan data pemohon, lalu mengubahnya menjadi PDF atau Word (.docx).
@@ -158,6 +159,10 @@ class SuratService
         foreach (['no_kk', 'tempat_lahir', 'jenis_kelamin', 'agama', 'status_perkawinan', 'pekerjaan', 'kewarganegaraan', 'alamat', 'rt', 'rw'] as $k) {
             $nilai[$k] = $d[$k] ?? '';
         }
+        $balik = trim((string) ($d['balik_nama_ke_pemegang_hak'] ?? ''));
+        $nilai['balik_nama'] = $balik !== '' ? ' dan sudah balik nama ke pemegang hak an. '.$balik : '';
+        $nilai['nama_camat'] = $s['nama_camat'] ?? '';
+        $nilai['nip_camat'] = $s['nip_camat'] ?? '';
 
         foreach ($p->layanan->isian ?? [] as $isian) {
             $v = $d[$isian['key']] ?? '';
@@ -196,6 +201,93 @@ class SuratService
     public function final(Permohonan $p): string
     {
         return $this->isiTemplate($p->surat_html ?? '', $this->nilaiPenanda($p));
+    }
+
+    // ---------------- Template Word kantor ----------------
+
+    /** Folder (disk local) untuk template Word yang diunggah admin, menimpa bawaan resources/surat. */
+    public const FOLDER_TEMPLATE_WORD = 'template-surat';
+
+    /** Path file Word yang dipakai layanan ini: unggahan admin, lalu bawaan resources/surat/{slug}.docx. Null = pakai template HTML. */
+    public static function templateWord(?Layanan $layanan): ?string
+    {
+        if (! $layanan?->slug || ! preg_match('/^[a-z0-9\-_]+$/i', $layanan->slug)) {
+            return null;
+        }
+        $unggah = Storage::disk('local')->path(self::FOLDER_TEMPLATE_WORD.'/'.$layanan->slug.'.docx');
+        if (is_file($unggah)) {
+            return $unggah;
+        }
+        $bawaan = resource_path('surat/'.$layanan->slug.'.docx');
+
+        return is_file($bawaan) ? $bawaan : null;
+    }
+
+    public static function tanggalAngka($tanggal): string
+    {
+        try {
+            return $tanggal ? Carbon::parse($tanggal)->format('d-m-Y') : '';
+        } catch (\Throwable) {
+            return (string) $tanggal;
+        }
+    }
+
+    public static function hari($tanggal): string
+    {
+        try {
+            return $tanggal ? Carbon::parse($tanggal)->locale('id')->translatedFormat('l') : '';
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /** Nilai penanda untuk template Word: penanda biasa + variasi tanggal (dd-mm-yyyy, hari) + kalimat tambahan. */
+    public function nilaiWord(Permohonan $p): array
+    {
+        $d = $p->data ?? [];
+        $s = Pengaturan::semua();
+        $nilai = $this->nilaiPenanda($p);
+
+        $nilai['tanggal_lahir_angka'] = self::tanggalAngka($d['tanggal_lahir'] ?? null);
+        $nilai['ttl_angka'] = trim(($d['tempat_lahir'] ?? '').', '.$nilai['tanggal_lahir_angka'], ', ');
+        foreach ($p->layanan->isian ?? [] as $isian) {
+            if ($isian['tipe'] === 'tanggal') {
+                $nilai[$isian['key'].'_angka'] = self::tanggalAngka($d[$isian['key']] ?? null);
+                $nilai[$isian['key'].'_hari'] = self::hari($d[$isian['key']] ?? null);
+            }
+        }
+        // Word: "${atas_nama_shm}${balik_nama}" — spasi di awal nilai bisa hilang, jadi kalimat balik nama digabung ke atas nama
+        if (isset($nilai['atas_nama_shm'])) {
+            $nilai['atas_nama_shm'] .= $nilai['balik_nama'];
+        }
+        $nilai['balik_nama'] = '';
+
+        return $nilai;
+    }
+
+    /** Isi file Word kantor dengan data permohonan. Hasil .docx (isi file). */
+    public function docxDariWord(Permohonan $p, string $template): string
+    {
+        // Wajib: tanpa ini karakter & atau < di data warga membuat file Word rusak.
+        Settings::setOutputEscapingEnabled(true);
+
+        $tp = new TemplateProcessor($template);
+        $nilai = $this->nilaiWord($p);
+        foreach (array_unique($tp->getVariables()) as $penanda) {
+            $isi = trim(preg_replace('/\s+/u', ' ', (string) ($nilai[$penanda] ?? '')));
+            if ($isi === '' && $penanda !== 'balik_nama') {
+                // Kosong: tulis seperti surat kantor ("-" atau titik-titik untuk batas tanah)
+                $isi = str_starts_with($penanda, 'batas_') ? '…… berbatasan dengan tanah ………………………….' : '-';
+            }
+            $tp->setValue($penanda, $isi);
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'surat');
+        $tp->saveAs($tmp);
+        $hasil = file_get_contents($tmp);
+        @unlink($tmp);
+
+        return $hasil;
     }
 
     public static function logoDataUri(): ?string

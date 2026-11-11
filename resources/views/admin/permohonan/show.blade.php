@@ -133,7 +133,9 @@
                         Selesai {{ $p->selesai_at?->locale('id')->translatedFormat('d F Y H:i') }} oleh {{ $p->petugas?->name ?? '-' }}
                     </div>
                     <div class="btn-group">
-                        <a href="{{ route('admin.permohonan.unduh', [$p, 'pdf']) }}" target="_blank" class="btn btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>
+                        @unless (\App\Services\SuratService::templateWord($p->layanan))
+                            <a href="{{ route('admin.permohonan.unduh', [$p, 'pdf']) }}" target="_blank" class="btn btn-danger"><i class="bi bi-file-earmark-pdf me-1"></i> PDF</a>
+                        @endunless
                         <a href="{{ route('admin.permohonan.unduh', [$p, 'docx']) }}" class="btn btn-primary"><i class="bi bi-file-earmark-word me-1"></i> Word</a>
                     </div>
                     <a href="{{ route('admin.permohonan.surat', $p) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i> Revisi Surat</a>

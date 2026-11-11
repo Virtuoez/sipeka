@@ -38,6 +38,9 @@ class Pengaturan extends Model
         'nip_kasi_kesos' => '19xxxxxxxxxxxxxxxx',
         'nama_kasi_pm' => 'NAMA KASI PM',
         'nip_kasi_pm' => '19xxxxxxxxxxxxxxxx',
+        // Mengetahui Camat (Surat Pernyataan Hibah)
+        'nama_camat' => 'NAMA CAMAT',
+        'nip_camat' => '19xxxxxxxxxxxxxxxx',
         'format_nomor' => '{kode}/{no}/KEL-SKP/{bulan_romawi}/{tahun}',
         'kertas' => 'A4',
         'logo' => '',

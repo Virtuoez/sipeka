@@ -60,10 +60,39 @@ class LayananController extends Controller
 
     public function template(Layanan $layanan)
     {
+        $word = SuratService::templateWord($layanan);
+
         return view('admin.layanan.template', [
             'layanan' => $layanan,
             'penandaUmum' => SuratService::PENANDA_UMUM,
+            'word' => $word,
+            'wordUnggahan' => $word && str_starts_with(str_replace('\\', '/', $word), str_replace('\\', '/', \Illuminate\Support\Facades\Storage::disk('local')->path(SuratService::FOLDER_TEMPLATE_WORD))),
+            'wordBawaan' => is_file(resource_path('surat/'.$layanan->slug.'.docx')),
         ]);
+    }
+
+    /** Unduh file Word yang dipakai layanan ini (untuk diedit di Word lalu diunggah lagi). */
+    public function unduhWord(Layanan $layanan)
+    {
+        $word = SuratService::templateWord($layanan);
+        abort_unless($word, 404);
+
+        return response()->download($word, 'TEMPLATE_'.Str::slug($layanan->nama, '_').'.docx');
+    }
+
+    public function unggahWord(Request $request, Layanan $layanan)
+    {
+        $request->validate(['template_word' => 'required|file|mimes:docx|max:10240']);
+        $request->file('template_word')->storeAs(SuratService::FOLDER_TEMPLATE_WORD, $layanan->slug.'.docx', 'local');
+
+        return back()->with('ok', 'Template Word disimpan. Surat berikutnya memakai file ini.');
+    }
+
+    public function hapusWord(Layanan $layanan)
+    {
+        \Illuminate\Support\Facades\Storage::disk('local')->delete(SuratService::FOLDER_TEMPLATE_WORD.'/'.$layanan->slug.'.docx');
+
+        return back()->with('ok', 'Template Word unggahan dihapus.');
     }
 
     public function simpanTemplate(Request $request, Layanan $layanan)
@@ -90,8 +119,13 @@ class LayananController extends Controller
         ]);
         $contoh->setRelation('layanan', $layanan);
 
-        $html = $surat->isiTemplate($request->input('template_html', $layanan->template_html ?? ''), $surat->nilaiPenanda($contoh));
-        $isi = $format === 'pdf' ? $surat->pdf($html) : $surat->docx($html);
+        $word = SuratService::templateWord($layanan);
+        if ($format === 'docx' && $word) {
+            $isi = $surat->docxDariWord($contoh, $word);
+        } else {
+            $html = $surat->isiTemplate($request->input('template_html', $layanan->template_html ?? ''), $surat->nilaiPenanda($contoh));
+            $isi = $format === 'pdf' ? $surat->pdf($html) : $surat->docx($html);
+        }
 
         return response($isi, 200, [
             'Content-Type' => $format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

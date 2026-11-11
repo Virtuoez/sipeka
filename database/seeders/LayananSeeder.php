@@ -35,6 +35,13 @@ class LayananSeeder extends Seeder
         '9d29789ab256c0f00e93919c25c9d658', '6bf6c324be85a3771e3f7a9495851c17', 'ed45906bb1cdd4012793a011a85e925f',
         '3a1da818fc7553416d60d9ba35e55003', 'ad3573a188026afe619ccadc4e4a3efa', 'f041976aa4023a728d9a8cbfdac589a2',
         'a3a39b3b56d58531a7cdb9edb2e1c1c4',
+        // Versi 3 (kalimat & nomor kantor)
+        '1e3304e1168a0150845abc0e2601a3f3', '3ac23b4211bd727ffe770f8cb2491d0b', '5dc37ee7e3dea887c25a428de456d140',
+        'bcbef7d1fdc491d0136caf7ba280d238', '39eb745d3b94791e327eea13a10f359d', 'b1b9b8da657ee78314c28d6461cc43f9',
+        'f7a8752bd448a8a8bbeba439fab34c32', 'b6093922dbdd342c15eb0cc4d3a9151e', '1ca40a857ae80ea410612daa5c088eed',
+        'e9b6288ebdfbfdb94ba04a1f109c29a2', '0ddbfbedf34ddf5ccbe3030f9fbaf09d', 'c6a9f60d0a0763cd32a8cf0b1316d317',
+        'c3608a2d1603b7f9858e1b2498c48827', 'abb4b31975d39d2a117caac5ce8eebca', '0284f084c48a50cd4f401bad8528ce0d',
+        'c5e314511e12048ee252e97b045090a5', '34b5a9a746c2cd694415b91b5d274280', '7371069e54be87fa3d00f3400fef6699',
     ];
 
     /**
@@ -288,9 +295,9 @@ class LayananSeeder extends Seeder
                 'slug' => 'pemekaran', 'nama' => 'Surat Keterangan Pemekaran', 'kode_surat' => '593', 'folder' => '11 - Keterangan Pemekaran', 'ikon' => 'signpost-split', 'bidang' => 'pemerintahan',
                 'deskripsi' => 'Keterangan bahwa tanah ber-SHM kini masuk wilayah Kelurahan Sekumpul (hasil pemekaran). Data diri diisi data pelapor.',
                 'persyaratan' => "KTP Pelapor\nFotokopi Sertifikat Hak Milik (SHM)\n$rt",
-                'isian' => "Nomor SHM | teks\nTanggal SHM | tanggal\nAtas Nama SHM | teks\nRT Lokasi Tanah | teks\nRW Lokasi Tanah | teks\nKelurahan Asal | teks",
+                'isian' => "Nomor SHM | teks\nTanggal SHM | tanggal\nAtas Nama SHM | teks\nBalik Nama ke Pemegang Hak | teks (opsional)\nLokasi Tanah | teks\nRT Lokasi Tanah | teks\nRW Lokasi Tanah | teks\nKelurahan Asal | teks",
                 'html' => $this->judul('Surat Keterangan').$this->pembukaKasi('pemerintahan')
-                    .$this->p('Sehubungan dengan permohonan dari pelapor an. <strong>{{nama}}</strong> NIK. {{nik}} dengan ini kami menerangkan bahwa sebidang tanah dengan dasar SHM No. <strong>{{nomor_shm}}</strong> Tanggal {{tanggal_shm}} an. {{atas_nama_shm}} yang telah diperiksa dan sesuai dengan daftar di Kepala Kantor Pertanahan Kabupaten {{kabupaten}}, berdasarkan PERDA No. 7 Tahun 2008 sekarang berada di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} yang merupakan hasil pemekaran dari Kelurahan {{kelurahan_asal}}.')
+                    .$this->p('Sehubungan dengan permohonan dari pelapor an. <strong>{{nama}}</strong> NIK. {{nik}} dengan ini kami menerangkan bahwa sebidang tanah dengan dasar SHM No. <strong>{{nomor_shm}}</strong> Tanggal {{tanggal_shm}} an. {{atas_nama_shm}}{{balik_nama}} yang di terbitkan oleh Kantor Pertanahan Kabupaten {{kabupaten}}, berdasarkan PERDA No. 7 Tahun 2008 sekarang berada di {{lokasi_tanah}} RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} yang merupakan hasil pemekaran dari Kelurahan {{kelurahan_asal}}.')
                     .$this->p('Demikian Surat keterangan ini diberikan untuk dapat dipergunakan sebagaimana mestinya').$this->ttdKasi('pemerintahan'),
             ],
             [
@@ -308,9 +315,9 @@ class LayananSeeder extends Seeder
                 'slug' => 'harga-tanah', 'nama' => 'Surat Keterangan Harga Tanah', 'kode_surat' => '593', 'folder' => '13 - Keterangan Harga Tanah', 'ikon' => 'cash-coin', 'bidang' => 'pemerintahan',
                 'deskripsi' => 'Taksiran harga tanah per meter di wilayah RT tertentu (mis. untuk keringanan BPHTB). Data diri diisi data pelapor.',
                 'persyaratan' => "KTP Pelapor\nFotokopi Sertifikat / Bukti Kepemilikan Tanah (opsional)\n$rt",
-                'isian' => "RT Lokasi Tanah | teks\nRW Lokasi Tanah | teks\nHarga Terendah per Meter | teks\nHarga Tertinggi per Meter | teks\nKeperluan | paragraf",
+                'isian' => "Nomor SHM | teks\nAtas Nama SHM | teks\nBalik Nama ke Pemegang Hak | teks (opsional)\nRT Lokasi Tanah | teks\nRW Lokasi Tanah | teks\nHarga Terendah per Meter | teks\nHarga Tertinggi per Meter | teks\nKeperluan | paragraf",
                 'html' => $this->judul('Surat Keterangan Harga Tanah').$this->pembukaKasi('pemerintahan')
-                    .$this->p('Berdasarkan permintaan pelapor an. <strong>{{nama}}</strong> yang beralamat di {{alamat}} RT. {{rt}} RW. {{rw}} dan keterangan dari Ketua RT. {{rt_lokasi_tanah}}/{{rw_lokasi_tanah}}, dengan ini menerangkan bahwa tanah di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} memiliki taksiran harga tanah = &plusmn; <strong>{{harga_terendah_per_meter}} s/d {{harga_tertinggi_per_meter}}</strong> per Meter.')
+                    .$this->p('Berdasarkan permintaan pelapor an. <strong>{{nama}}</strong> NIK. {{nik}} yang beralamat di {{alamat}} RT. {{rt}}/{{rw}}, dengan ini menerangkan bahwa tanah dengan SHM No. {{nomor_shm}} an. {{atas_nama_shm}}{{balik_nama}} di wilayah RT. {{rt_lokasi_tanah}} RW. {{rw_lokasi_tanah}} Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} memiliki taksiran harga tanah = &plusmn; <strong>{{harga_terendah_per_meter}} s/d {{harga_tertinggi_per_meter}}</strong> per Meter.')
                     .$this->p('Surat Keterangan Harga Tanah ini dibuat sebagai bahan persyaratan untuk {{keperluan}}.')
                     .$this->p('Demikian Surat keterangan ini dibuat sebagai bahan selanjutnya, dan apabila dikemudian terdapat kesalahan akan dilakukan perbaikan sebagaimana mestinya.')
                     .$this->ttdKasi('pemerintahan'),
@@ -477,6 +484,14 @@ class LayananSeeder extends Seeder
             }
 
             $belumDiedit = in_array(md5((string) $ada->template_html), self::TEMPLATE_LAMA, true);
+            if (! $timpaTemplate && ! $belumDiedit) {
+                // Template sudah diedit admin: isian baru (dipakai template Word) tetap ditambahkan di akhir
+                $punya = collect($ada->isian ?? [])->pluck('key')->all();
+                $baru = collect($nilai['isian'])->reject(fn ($i) => in_array($i['key'], $punya, true))->values()->all();
+                if ($baru) {
+                    $atur['isian'] = array_merge($ada->isian ?? [], $baru);
+                }
+            }
             // Format nomor yang sudah diatur admin tidak ditimpa
             $nomor = $timpaTemplate || ! $ada->format_nomor ? $nomor : [];
             // Folder arsip layanan lama tidak diubah, supaya arsip lama & baru tetap satu folder
