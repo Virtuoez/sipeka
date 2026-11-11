@@ -29,9 +29,10 @@
             <div class="col-md-4 d-flex align-items-center gap-2">
                 @if ($s['logo'])
                     <img src="{{ asset('storage/'.$s['logo']) }}" alt="Logo" style="height: 64px">
-                    <div class="form-check"><input class="form-check-input" type="checkbox" name="hapus_logo" value="1" id="hapusLogo"><label class="form-check-label small" for="hapusLogo">Hapus logo</label></div>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" name="hapus_logo" value="1" id="hapusLogo"><label class="form-check-label small" for="hapusLogo">Kembali ke logo Kabupaten Banjar</label></div>
                 @else
-                    <span class="small text-muted">Belum ada logo.</span>
+                    <img src="{{ \App\Services\SuratService::logoDataUri() }}" alt="Logo Kabupaten Banjar" style="height: 64px">
+                    <span class="small text-muted">Logo Kabupaten Banjar (bawaan)</span>
                 @endif
             </div>
         </div>

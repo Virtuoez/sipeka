@@ -24,7 +24,7 @@ class Pengaturan extends Model
         'kecamatan' => 'Martapura',
         'kabupaten' => 'Banjar',
         'provinsi' => 'Kalimantan Selatan',
-        'alamat_kantor' => 'Jl. Sekumpul, Kec. Martapura, Kab. Banjar, Kalimantan Selatan',
+        'alamat_kantor' => 'Jl. Pendidikan Samping Irigasi RT.002 RW.001 Kode Pos 70614 Martapura',
         'telepon' => '',
         'email' => '',
         'jam_layanan' => 'Senin - Kamis 08.00 - 15.00 WITA, Jumat 08.00 - 11.00 WITA',
@@ -46,7 +46,7 @@ class Pengaturan extends Model
 
     public static function semua(): array
     {
-        return Cache::rememberForever('pengaturan', function () {
+        return Cache::rememberForever(self::kunciCache(), function () {
             $tersimpan = self::query()->pluck('nilai', 'kunci')->all();
 
             return array_merge(self::BAWAAN, array_filter($tersimpan, fn ($v) => $v !== null));
@@ -63,6 +63,12 @@ class Pengaturan extends Model
         foreach ($data as $kunci => $nilai) {
             self::updateOrCreate(['kunci' => $kunci], ['nilai' => $nilai]);
         }
-        Cache::forget('pengaturan');
+        Cache::forget(self::kunciCache());
+    }
+
+    /** Kunci cache ikut berubah saat nilai BAWAAN diubah, jadi cache lama (mis. di database Vercel) tidak terpakai lagi. */
+    private static function kunciCache(): string
+    {
+        return 'pengaturan:'.substr(md5(serialize(self::BAWAAN)), 0, 8);
     }
 }

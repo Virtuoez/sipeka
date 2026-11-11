@@ -161,26 +161,30 @@ class SuratService
     {
         $logo = Pengaturan::ambil('logo');
         if (! $logo || ! Storage::disk('public')->exists($logo)) {
-            return null;
+            // Belum ada logo unggahan: pakai logo Kabupaten Banjar bawaan (dari surat kantor).
+            return 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path(self::LOGO_BAWAAN)));
         }
         $mime = Storage::disk('public')->mimeType($logo) ?: 'image/png';
 
         return 'data:'.$mime.';base64,'.base64_encode(Storage::disk('public')->get($logo));
     }
 
+    public const LOGO_BAWAAN = 'img/logo-kabupaten-banjar.png';
+
     public function kopHtml(): string
     {
         $s = Pengaturan::semua();
         $logo = self::logoDataUri();
-        $baris = '<p style="text-align: center; margin: 0; font-size: 14pt;"><strong>PEMERINTAH KABUPATEN '.e(mb_strtoupper($s['kabupaten'])).'</strong></p>'
-            .'<p style="text-align: center; margin: 0; font-size: 14pt;"><strong>KECAMATAN '.e(mb_strtoupper($s['kecamatan'])).'</strong></p>'
-            .'<p style="text-align: center; margin: 0; font-size: 16pt;"><strong>KELURAHAN '.e(mb_strtoupper($s['nama_kelurahan'])).'</strong></p>'
-            .'<p style="text-align: center; margin: 0; font-size: 10pt;">'.e($s['alamat_kantor'])
+        // Ukuran huruf mengikuti kop surat kantor (16 / 18 / 24 / 11 pt).
+        $baris = '<p style="text-align: center; margin: 0; font-size: 16pt;"><strong>PEMERINTAH KABUPATEN '.e(mb_strtoupper($s['kabupaten'])).'</strong></p>'
+            .'<p style="text-align: center; margin: 0; font-size: 18pt;"><strong>KECAMATAN '.e(mb_strtoupper($s['kecamatan'])).'</strong></p>'
+            .'<p style="text-align: center; margin: 0; font-size: 24pt;"><strong>KELURAHAN '.e(mb_strtoupper($s['nama_kelurahan'])).'</strong></p>'
+            .'<p style="text-align: center; margin: 0; font-size: 11pt;">'.e($s['alamat_kantor'])
             .($s['telepon'] ? ' Telp. '.e($s['telepon']) : '').($s['email'] ? ' Email: '.e($s['email']) : '').'</p>';
 
         if ($logo) {
             $isi = '<table style="width: 100%; border-collapse: collapse;" width="100%"><tr>'
-                .'<td style="width: 15%; text-align: center; vertical-align: middle;" width="15%"><img src="'.$logo.'" width="75" height="85" style="width: 75px; height: 85px;" /></td>'
+                .'<td style="width: 15%; text-align: center; vertical-align: middle;" width="15%"><img src="'.$logo.'" width="76" height="100" style="width: 76px; height: 100px;" /></td>'
                 .'<td style="width: 85%; vertical-align: middle;" width="85%">'.$baris.'</td>'
                 .'</tr></table>';
         } else {
