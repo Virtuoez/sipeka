@@ -167,6 +167,11 @@ class SuratService
         foreach ($p->layanan->isian ?? [] as $isian) {
             $v = $d[$isian['key']] ?? '';
             $nilai[$isian['key']] = $isian['tipe'] === 'tanggal' ? self::tanggalIndo($v) : $v;
+            if ($isian['tipe'] === 'pilihan') {
+                // Nomor urut pilihan, mis. Alasan Pindah "Keluarga" → 6 (formulir pindah kantor memakai kode angka)
+                $i = array_search($v, $isian['pilihan'] ?? [], true);
+                $nilai[$isian['key'].'_kode'] = $i === false ? '' : (string) ($i + 1);
+            }
         }
 
         return $nilai;
@@ -208,19 +213,135 @@ class SuratService
     /** Folder (disk local) untuk template Word yang diunggah admin, menimpa bawaan resources/surat. */
     public const FOLDER_TEMPLATE_WORD = 'template-surat';
 
-    /** Path file Word yang dipakai layanan ini: unggahan admin, lalu bawaan resources/surat/{slug}.docx. Null = pakai template HTML. */
+    /** Jenis file template kantor yang didukung: Word & Excel. */
+    public const EKSTENSI_TEMPLATE = ['docx', 'xlsx'];
+
+    public const MIME = [
+        'pdf' => 'application/pdf',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+
+    /** Daftar ${penanda} di file Excel (urut kemunculan di sharedStrings / sel teks). */
+    public static function penandaExcel(string $template): array
+    {
+        $zip = new \ZipArchive;
+        if ($zip->open($template) !== true) {
+            return [];
+        }
+        $semua = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if (preg_match('#^xl/(sharedStrings\.xml|worksheets/sheet\d+\.xml)$#', $zip->getNameIndex($i))
+                && preg_match_all('/\$\{([a-z0-9_]+)\}/i', $zip->getFromIndex($i), $m)) {
+                array_push($semua, ...array_map('strtolower', $m[1]));
+            }
+        }
+        $zip->close();
+
+        return array_values(array_unique($semua));
+    }
+
+    /**
+     * Path file kantor (Word .docx / Excel .xlsx) yang dipakai layanan ini: unggahan admin, lalu bawaan
+     * resources/surat/{slug}.docx|xlsx. Null = pakai template HTML.
+     */
     public static function templateWord(?Layanan $layanan): ?string
     {
         if (! $layanan?->slug || ! preg_match('/^[a-z0-9\-_]+$/i', $layanan->slug)) {
             return null;
         }
-        $unggah = Storage::disk('local')->path(self::FOLDER_TEMPLATE_WORD.'/'.$layanan->slug.'.docx');
-        if (is_file($unggah)) {
-            return $unggah;
+        foreach ([Storage::disk('local')->path(self::FOLDER_TEMPLATE_WORD), resource_path('surat')] as $folder) {
+            foreach (self::EKSTENSI_TEMPLATE as $ext) {
+                if (is_file($f = $folder.'/'.$layanan->slug.'.'.$ext)) {
+                    return $f;
+                }
+            }
         }
-        $bawaan = resource_path('surat/'.$layanan->slug.'.docx');
 
-        return is_file($bawaan) ? $bawaan : null;
+        return null;
+    }
+
+    /** "docx" atau "xlsx" untuk template kantor layanan ini (null = tidak ada). */
+    public static function ekstensiTemplate(?Layanan $layanan): ?string
+    {
+        $f = self::templateWord($layanan);
+
+        return $f ? strtolower(pathinfo($f, PATHINFO_EXTENSION)) : null;
+    }
+
+    /** Isi template kantor (Word/Excel) dengan data permohonan. Hasil = isi file. */
+    public function isiTemplateKantor(Permohonan $p, string $template): string
+    {
+        return str_ends_with(strtolower($template), '.xlsx') ? $this->xlsxDariExcel($p, $template) : $this->docxDariWord($p, $template);
+    }
+
+    /**
+     * Isi file Excel kantor: ganti ${penanda} di teks sel (sharedStrings & sel teks), lalu Excel menghitung ulang
+     * rumus saat file dibuka (lembar surat mengambil data dari lembar formulir).
+     */
+    public function xlsxDariExcel(Permohonan $p, string $template): string
+    {
+        $nilai = $this->nilaiExcel($p);
+        $tmp = tempnam(sys_get_temp_dir(), 'surat');
+        copy($template, $tmp);
+
+        $zip = new \ZipArchive;
+        $zip->open($tmp);
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $nama = $zip->getNameIndex($i);
+            if (! preg_match('#^xl/(sharedStrings\.xml|worksheets/sheet\d+\.xml|workbook\.xml)$#', $nama)) {
+                continue;
+            }
+            $xml = $zip->getFromIndex($i);
+            $xml = preg_replace_callback('/\$\{([a-z0-9_]+)\}/i', function ($m) use ($nilai) {
+                $k = strtolower($m[1]);
+                $v = trim(preg_replace('/\s+/u', ' ', (string) ($nilai[$k] ?? '')));
+                if ($v === '' && ! preg_match('/^p\d+_/', $k)) {
+                    $v = $k === 'nama_fasilitator_puskesos' ? '…………………….' : '-';
+                }
+
+                return htmlspecialchars($v, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+            }, $xml);
+            if (str_starts_with($nama, 'xl/worksheets/')) {
+                // Buang hasil rumus lama supaya tidak tampil data template; Excel menghitung ulang
+                $xml = preg_replace('#(<f>[^<]*</f>|<f [^>]*/>|<f [^>]*>[^<]*</f>)<v>[^<]*</v>#', '$1', $xml);
+            }
+            if ($nama === 'xl/workbook.xml') {
+                $xml = preg_match('/<calcPr\b[^>]*fullCalcOnLoad=/', $xml) ? $xml
+                    : preg_replace('/<calcPr\b/', '<calcPr fullCalcOnLoad="1"', $xml, 1);
+            }
+            $zip->addFromString($nama, $xml);
+        }
+        $zip->close();
+        $hasil = file_get_contents($tmp);
+        @unlink($tmp);
+
+        return $hasil;
+    }
+
+    /** Nilai untuk template Excel: seperti Word + daftar pengikut pindah (p1_nik, p1_nama, ...). */
+    public function nilaiExcel(Permohonan $p): array
+    {
+        $nilai = $this->nilaiWord($p);
+        $nilai['nama_fasilitator_puskesos'] = Pengaturan::ambil('nama_fasilitator_puskesos', '');
+
+        // "Anggota yang Pindah": satu orang per baris, "NIK - Nama - Keterangan". Kosong = pemohon sendiri.
+        $baris = array_values(array_filter(array_map('trim', preg_split('/\r?\n/', (string) (($p->data ?? [])['anggota_yang_pindah'] ?? '')))));
+        $orang = array_map(function ($b) {
+            $bagian = array_map('trim', preg_split('/\s+[-|;]\s+|\t|\s*\|\s*/', $b));
+
+            return ['nik' => $bagian[0] ?? '', 'nama' => mb_strtoupper($bagian[1] ?? ''), 'ket' => $bagian[2] ?? ''];
+        }, $baris) ?: [['nik' => $p->nik, 'nama' => mb_strtoupper((string) $p->nama), 'ket' => '']];
+        foreach ($orang as $i => $o) {
+            $n = $i + 1;
+            $nilai["p{$n}_no"] = (string) $n;
+            $nilai["p{$n}_nik"] = $o['nik'];
+            $nilai["p{$n}_nama"] = $o['nama'];
+            $nilai["p{$n}_ket"] = $o['ket'] !== '' ? $o['ket'] : '-';
+        }
+        $nilai['jumlah_pengikut'] = (string) count($orang);
+
+        return $nilai;
     }
 
     public static function tanggalAngka($tanggal): string

@@ -59,6 +59,7 @@ class PengajuanController extends Controller
             $r[] = match ($isian['tipe']) {
                 'tanggal' => 'date',
                 'angka' => 'numeric',
+                'pilihan' => \Illuminate\Validation\Rule::in($isian['pilihan'] ?? []),
                 default => 'string',
             };
             if (in_array($isian['tipe'], ['teks', 'paragraf'])) {

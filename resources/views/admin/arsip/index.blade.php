@@ -52,13 +52,13 @@
                         @php($ext = strtolower(pathinfo($f['nama'], PATHINFO_EXTENSION)))
                         <tr>
                             <td>
-                                <i class="bi {{ ['pdf' => 'bi-file-earmark-pdf text-danger', 'docx' => 'bi-file-earmark-word text-primary', 'jpg' => 'bi-file-earmark-image text-success', 'jpeg' => 'bi-file-earmark-image text-success', 'png' => 'bi-file-earmark-image text-success'][$ext] ?? 'bi-file-earmark' }} me-1"></i>
+                                <i class="bi {{ ['pdf' => 'bi-file-earmark-pdf text-danger', 'docx' => 'bi-file-earmark-word text-primary', 'xlsx' => 'bi-file-earmark-excel text-success', 'jpg' => 'bi-file-earmark-image text-success', 'jpeg' => 'bi-file-earmark-image text-success', 'png' => 'bi-file-earmark-image text-success'][$ext] ?? 'bi-file-earmark' }} me-1"></i>
                                 {{ $f['nama'] }}
                             </td>
                             <td class="small">{{ number_format($f['ukuran'] / 1024, 0, ',', '.') }} KB</td>
                             <td class="small">{{ date('d/m/Y H:i', $f['waktu']) }}</td>
                             <td class="text-end text-nowrap">
-                                @if ($ext !== 'docx')
+                                @if (! in_array($ext, ['docx', 'xlsx']))
                                     <a href="{{ route('admin.arsip.file', ['path' => $f['path']]) }}" target="_blank" class="btn btn-sm btn-light" title="Lihat / cetak"><i class="bi bi-eye"></i></a>
                                 @endif
                                 <a href="{{ route('admin.arsip.file', ['path' => $f['path'], 'unduh' => 1]) }}" class="btn btn-sm btn-light" title="Unduh"><i class="bi bi-download"></i></a>

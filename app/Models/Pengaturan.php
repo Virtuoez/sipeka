@@ -41,6 +41,8 @@ class Pengaturan extends Model
         // Mengetahui Camat (Surat Pernyataan Hibah)
         'nama_camat' => 'NAMA CAMAT',
         'nip_camat' => '19xxxxxxxxxxxxxxxx',
+        // Supervisor / Fasilitator Puskesos Kecamatan (SKTM)
+        'nama_fasilitator_puskesos' => '',
         'format_nomor' => '{kode}/{no}/KEL-SKP/{bulan_romawi}/{tahun}',
         'kertas' => 'A4',
         'logo' => '',

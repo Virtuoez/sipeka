@@ -1,6 +1,11 @@
 @extends('layouts.admin')
 @section('judul', 'Template Surat')
 
+@php
+    $aplikasi = $ext === 'xlsx' ? 'Excel' : 'Word';
+    $ikon = $ext === 'xlsx' ? 'bi-file-earmark-excel text-success' : 'bi-file-earmark-word text-primary';
+@endphp
+
 @section('konten')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
@@ -11,38 +16,39 @@
         @unless ($word)
             <button type="button" class="btn btn-outline-danger btn-sm" onclick="pratinjau('pdf')"><i class="bi bi-file-earmark-pdf"></i> Pratinjau PDF</button>
         @endunless
-        <button type="button" class="btn btn-{{ $word ? '' : 'outline-' }}primary btn-sm" onclick="pratinjau('docx')"><i class="bi bi-file-earmark-word"></i> {{ $word ? 'Coba Isi Word (data contoh)' : 'Pratinjau Word' }}</button>
+        <button type="button" class="btn btn-{{ $word ? '' : 'outline-' }}primary btn-sm" onclick="pratinjau('{{ $ext ?: 'docx' }}')"><i class="bi {{ $word ? str_replace([' text-primary', ' text-success'], '', $ikon) : 'bi-file-earmark-word' }}"></i> {{ $word ? 'Coba Isi '.$aplikasi.' (data contoh)' : 'Pratinjau Word' }}</button>
     </div>
 </div>
 
 <div class="card mb-3 {{ $word ? 'border-primary' : '' }}">
     <div class="card-body">
-        <div class="fw-semibold mb-1"><i class="bi bi-file-earmark-word text-primary"></i> Template Word kantor</div>
+        <div class="fw-semibold mb-1"><i class="bi {{ $word ? $ikon : 'bi-file-earmark-word text-primary' }}"></i> Template {{ $word ? $aplikasi : 'Word / Excel' }} kantor</div>
         @if ($word)
             <p class="small mb-2">
-                Surat ini <b>dicetak dari file Word</b> ({{ $wordUnggahan ? 'unggahan' : 'bawaan, dari surat kantor' }}).
-                Editor di bawah hanya dipakai kalau file Word dihapus. Untuk mengubah surat: unduh Word-nya, ubah di Word
+                Surat ini <b>dicetak dari file {{ $aplikasi }}</b> ({{ $wordUnggahan ? 'unggahan' : 'bawaan, dari surat kantor' }}).
+                Editor di bawah hanya dipakai kalau file {{ $aplikasi }} dihapus. Untuk mengubah surat: unduh file-nya, ubah di {{ $aplikasi }}
                 (biarkan tulisan seperti <code>${nama}</code>, <code>${nik}</code> karena itu diisi otomatis), lalu unggah lagi.
             </p>
         @else
-            <p class="small mb-2">Belum ada file Word. Surat dibuat dari editor di bawah. Bisa juga unggah file Word dengan penanda seperti <code>${nama}</code>, <code>${nik}</code>, <code>${nomor_surat}</code>.</p>
+            <p class="small mb-2">Belum ada file kantor. Surat dibuat dari editor di bawah. Bisa juga unggah file Word (.docx) atau Excel (.xlsx) dengan penanda seperti <code>${nama}</code>, <code>${nik}</code>, <code>${nomor_surat}</code>.</p>
         @endif
         <div class="d-flex flex-wrap gap-2 align-items-center">
             @if ($word)
-                <a href="{{ route('admin.layanan.word', $layanan) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Unduh template Word</a>
+                <a href="{{ route('admin.layanan.word', $layanan) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Unduh template {{ $aplikasi }}</a>
             @endif
             <form method="post" action="{{ route('admin.layanan.unggah-word', $layanan) }}" enctype="multipart/form-data" class="d-flex gap-2">
                 @csrf
-                <input type="file" name="template_word" accept=".docx" class="form-control form-control-sm" required>
+                <input type="file" name="template_word" accept=".docx,.xlsx" class="form-control form-control-sm" required>
                 <button class="btn btn-primary btn-sm text-nowrap"><i class="bi bi-upload"></i> Unggah</button>
             </form>
             @if ($wordUnggahan)
-                <form method="post" action="{{ route('admin.layanan.hapus-word', $layanan) }}" onsubmit="return confirm('Hapus template Word unggahan?{{ $wordBawaan ? ' Surat kembali memakai Word bawaan.' : '' }}')">
+                <form method="post" action="{{ route('admin.layanan.hapus-word', $layanan) }}" onsubmit="return confirm('Hapus template unggahan?{{ $wordBawaan ? ' Surat kembali memakai file bawaan.' : '' }}')">
                     @csrf @method('DELETE')
-                    <button class="btn btn-link btn-sm text-danger"><i class="bi bi-arrow-counterclockwise"></i> {{ $wordBawaan ? 'Kembali ke Word bawaan' : 'Hapus file Word' }}</button>
+                    <button class="btn btn-link btn-sm text-danger"><i class="bi bi-arrow-counterclockwise"></i> {{ $wordBawaan ? 'Kembali ke file bawaan' : 'Hapus file unggahan' }}</button>
                 </form>
             @endif
         </div>
+        @error('template_word')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
     </div>
 </div>
 
@@ -55,7 +61,7 @@
 
 @if ($word)
 <details class="mb-3">
-    <summary class="small text-muted">Template cadangan (tidak dipakai selama file Word ada)</summary>
+    <summary class="small text-muted">Template cadangan (tidak dipakai selama file {{ $aplikasi }} ada)</summary>
 @endif
 <div class="row g-3 mt-1">
     <div class="col-xl-9">

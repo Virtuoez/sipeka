@@ -16,7 +16,10 @@
                     <tr>
                         <td><i class="bi bi-{{ $l->ikon }} text-primary me-1"></i> <strong>{{ $l->nama }}</strong>
                             <div><span class="badge text-bg-{{ $l->bidang ? 'success' : 'light' }} fw-normal">{{ $l->labelBidang() }}</span>
-                                @if (\App\Services\SuratService::templateWord($l))
+                                @php($extKantor = \App\Services\SuratService::ekstensiTemplate($l))
+                                @if ($extKantor === 'xlsx')
+                                    <span class="badge text-bg-success fw-normal"><i class="bi bi-file-earmark-excel"></i> Excel kantor</span>
+                                @elseif ($extKantor)
                                     <span class="badge text-bg-primary fw-normal"><i class="bi bi-file-earmark-word"></i> Word kantor</span>
                                 @else
                                     <span class="badge text-bg-light fw-normal border">Template website</span>

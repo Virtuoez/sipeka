@@ -51,6 +51,7 @@
             @endforeach
             <div class="col-md-6"><label class="form-label">Nama Camat (Mengetahui, Surat Hibah)</label><input name="nama_camat" value="{{ old('nama_camat', $s['nama_camat']) }}" class="form-control"></div>
             <div class="col-md-6"><label class="form-label">NIP Camat</label><input name="nip_camat" value="{{ old('nip_camat', $s['nip_camat']) }}" class="form-control"></div>
+            <div class="col-md-6"><label class="form-label">Nama Supervisor / Fasilitator Puskesos (SKTM)</label><input name="nama_fasilitator_puskesos" value="{{ old('nama_fasilitator_puskesos', $s['nama_fasilitator_puskesos']) }}" class="form-control" placeholder="kosong = titik-titik"></div>
             <div class="col-12">
                 <label class="form-label">Format Nomor Surat</label>
                 <input name="format_nomor" value="{{ old('format_nomor', $s['format_nomor']) }}" class="form-control font-monospace" required>

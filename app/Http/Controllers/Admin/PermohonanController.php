@@ -155,11 +155,14 @@ class PermohonanController extends Controller
 
         $word = SuratService::templateWord($permohonan->layanan);
         if ($word) {
-            // Surat dicetak dari file Word kantor: tampilkan data yang akan masuk ke surat
-            $nilai = $this->surat->nilaiWord($permohonan);
-            $penanda = array_values(array_unique((new \PhpOffice\PhpWord\TemplateProcessor($word))->getVariables()));
+            // Surat dicetak dari file Word/Excel kantor: tampilkan data yang akan masuk ke surat
+            $ext = SuratService::ekstensiTemplate($permohonan->layanan);
+            $nilai = $ext === 'xlsx' ? $this->surat->nilaiExcel($permohonan) : $this->surat->nilaiWord($permohonan);
+            $penanda = $ext === 'xlsx'
+                ? SuratService::penandaExcel($word)
+                : array_values(array_unique((new \PhpOffice\PhpWord\TemplateProcessor($word))->getVariables()));
 
-            return view('admin.permohonan.surat-word', ['p' => $permohonan, 'penanda' => $penanda, 'nilai' => $nilai]);
+            return view('admin.permohonan.surat-word', ['p' => $permohonan, 'penanda' => $penanda, 'nilai' => $nilai, 'ext' => $ext]);
         }
 
         return view('admin.permohonan.surat', ['p' => $permohonan]);
@@ -174,7 +177,7 @@ class PermohonanController extends Controller
             'nomor_surat' => 'required|string|max:100',
             'tanggal_surat' => 'required|date',
             'surat_html' => $word ? 'nullable|string' : 'required|string',
-            'surat_word' => 'nullable|file|mimes:docx|max:10240',
+            'surat_word' => 'nullable|file|mimes:'.($word ? SuratService::ekstensiTemplate($permohonan->layanan) : 'docx').'|max:10240',
             'aksi' => 'required|in:simpan,selesai',
         ]);
 
@@ -198,7 +201,8 @@ class PermohonanController extends Controller
             return back()->with('ok', 'Draf surat disimpan.');
         }
 
-        $pesan = "Antrian No. {$permohonan->nomorLabel()} selesai. Surat (".($word ? 'Word' : 'PDF + Word').') sudah masuk folder arsip.';
+        $jenis = ['docx' => 'Word', 'xlsx' => 'Excel'][SuratService::ekstensiTemplate($permohonan->layanan) ?? ''] ?? 'PDF + Word';
+        $pesan = "Antrian No. {$permohonan->nomorLabel()} selesai. Surat ($jenis) sudah masuk folder arsip.";
 
         // Kasi kembali ke antrean: permohonan ini sudah hilang dari daftarnya.
         return $request->user()->isKasi()
@@ -217,19 +221,21 @@ class PermohonanController extends Controller
 
     public function unduh(Permohonan $permohonan, string $format, Request $request)
     {
-        abort_unless(in_array($format, ['pdf', 'docx']), 404);
+        abort_unless(in_array($format, ['pdf', 'docx', 'xlsx']), 404);
         $this->bolehKerjakan($permohonan, $request);
         $permohonan->load('layanan');
         abort_unless($permohonan->surat_html, 404, 'Surat belum dibuat.');
 
         $word = SuratService::templateWord($permohonan->layanan);
         if ($word) {
-            abort_unless($format === 'docx', 404, 'Surat ini dicetak dari file Word kantor. Unduh versi Word-nya.');
-            // Surat selesai: pakai file yang sudah diarsipkan (bisa jadi Word yang sudah diedit Kasi)
-            $arsip = $permohonan->folder_path.'/'.$this->arsip->namaFileSurat($permohonan, 'docx');
+            abort_unless($format === SuratService::ekstensiTemplate($permohonan->layanan), 404, 'Surat ini dicetak dari file kantor. Unduh lewat tombol Unduh Surat.');
+            // Surat selesai: pakai file yang sudah diarsipkan (bisa jadi file yang sudah diedit Kasi)
+            $arsip = $permohonan->folder_path.'/'.$this->arsip->namaFileSurat($permohonan, $format);
             $isi = $permohonan->status === 'selesai' && $permohonan->folder_path && ArsipService::disk()->exists($arsip)
                 ? ArsipService::disk()->get($arsip)
-                : $this->surat->docxDariWord($permohonan, $word);
+                : $this->surat->isiTemplateKantor($permohonan, $word);
+        } elseif ($format === 'xlsx') {
+            abort(404);
         } else {
             $html = $this->surat->final($permohonan);
             $isi = $format === 'pdf' ? $this->surat->pdf($html) : $this->surat->docx($html);
@@ -238,7 +244,7 @@ class PermohonanController extends Controller
             }
         }
 
-        $mime = $format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        $mime = SuratService::MIME[$format];
         $disposisi = $format === 'pdf' ? 'inline' : 'attachment';
 
         return response($isi, 200, [
@@ -304,9 +310,9 @@ class PermohonanController extends Controller
     {
         $word = SuratService::templateWord($p->layanan);
         if ($word) {
-            // Word kantor; kalau Kasi mengunggah Word yang sudah diedit, file itulah yang diarsipkan
-            $isi = $wordDiedit ? $wordDiedit->get() : $this->surat->docxDariWord($p, $word);
-            $this->arsip->simpanSurat($p, $isi, 'docx');
+            // Word/Excel kantor; kalau Kasi mengunggah file yang sudah diedit, file itulah yang diarsipkan
+            $isi = $wordDiedit ? $wordDiedit->get() : $this->surat->isiTemplateKantor($p, $word);
+            $this->arsip->simpanSurat($p, $isi, SuratService::ekstensiTemplate($p->layanan));
 
             return;
         }

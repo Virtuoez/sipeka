@@ -8,6 +8,11 @@
     $sebut = fn ($k) => $label[$k] ?? ($label[preg_replace('/_(angka|hari)$/', '', $k)] ?? \Illuminate\Support\Str::headline($k))
         .(str_ends_with($k, '_hari') ? ' (hari)' : '');
     $lewati = ['nomor_surat', 'tanggal_surat'];
+    $ext = $ext ?? 'docx';
+    $aplikasi = $ext === 'xlsx' ? 'Excel' : 'Word';
+    $ikon = $ext === 'xlsx' ? 'bi-file-earmark-excel' : 'bi-file-earmark-word';
+    // Baris pengikut pindah yang kosong tidak perlu ditampilkan
+    $penanda = array_values(array_filter($penanda, fn ($k) => ! preg_match('/^p\d+_/', $k) || trim((string) ($nilai[$k] ?? '')) !== ''));
 @endphp
 
 @section('konten')
@@ -16,12 +21,12 @@
         <a href="{{ route('admin.permohonan.show', $p) }}" class="small"><i class="bi bi-arrow-left"></i> Kembali ke detail</a>
         <h5 class="fw-bold mb-0 mt-1">{{ $p->layanan->nama }} &mdash; {{ $p->nama }}</h5>
     </div>
-    <a href="{{ route('admin.permohonan.unduh', [$p, 'docx']) }}" class="btn btn-primary"><i class="bi bi-file-earmark-word me-1"></i> Unduh Surat (Word)</a>
+    <a href="{{ route('admin.permohonan.unduh', [$p, $ext]) }}" class="btn btn-primary"><i class="bi {{ $ikon }} me-1"></i> Unduh Surat ({{ $aplikasi }})</a>
 </div>
 
 <div class="alert alert-info small py-2">
-    <i class="bi bi-info-circle"></i> Surat ini memakai <b>file Word kantor</b>. Klik <b>Unduh Surat (Word)</b>, buka di Word, lalu cetak.
-    Kalau ada yang perlu diubah, ubah langsung di Word.
+    <i class="bi bi-info-circle"></i> Surat ini memakai <b>file {{ $aplikasi }} kantor</b>. Klik <b>Unduh Surat ({{ $aplikasi }})</b>, buka di {{ $aplikasi }}, lalu cetak.
+    Kalau ada yang perlu diubah, ubah langsung di {{ $aplikasi }}.
 </div>
 
 <form method="post" action="{{ route('admin.permohonan.simpan-surat', $p) }}" enctype="multipart/form-data">
@@ -61,14 +66,14 @@
                     <button name="aksi" value="simpan" class="btn btn-outline-primary w-100 mb-3"><i class="bi bi-save me-1"></i> Simpan Nomor &amp; Tanggal</button>
                     <hr>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Word yang sudah diedit (opsional)</label>
-                        <input type="file" name="surat_word" accept=".docx" class="form-control form-control-sm">
-                        <div class="form-text">Kalau tadi surat diubah di Word, unggah filenya di sini supaya yang diarsipkan sama dengan yang dicetak.</div>
+                        <label class="form-label small fw-semibold">{{ $aplikasi }} yang sudah diedit (opsional)</label>
+                        <input type="file" name="surat_word" accept=".{{ $ext }}" class="form-control form-control-sm">
+                        <div class="form-text">Kalau tadi surat diubah di {{ $aplikasi }}, unggah filenya di sini supaya yang diarsipkan sama dengan yang dicetak.</div>
                     </div>
-                    <button name="aksi" value="selesai" class="btn btn-success w-100" onclick="return confirm('Tandai surat selesai? File Word akan disimpan ke folder arsip.')"><i class="bi bi-check2-circle me-1"></i> Selesai &amp; Arsipkan</button>
+                    <button name="aksi" value="selesai" class="btn btn-success w-100" onclick="return confirm('Tandai surat selesai? File {{ $aplikasi }} akan disimpan ke folder arsip.')"><i class="bi bi-check2-circle me-1"></i> Selesai &amp; Arsipkan</button>
                 </div>
             </div>
-            <div class="small text-muted">Nomor &amp; tanggal ikut masuk ke Word. Ubah nomor/tanggal → klik <b>Simpan</b> dulu sebelum unduh lagi.</div>
+            <div class="small text-muted">Nomor &amp; tanggal ikut masuk ke {{ $aplikasi }}. Ubah nomor/tanggal → klik <b>Simpan</b> dulu sebelum unduh lagi.</div>
         </div>
     </div>
 </form>

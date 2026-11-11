@@ -67,7 +67,8 @@ class LayananController extends Controller
             'penandaUmum' => SuratService::PENANDA_UMUM,
             'word' => $word,
             'wordUnggahan' => $word && str_starts_with(str_replace('\\', '/', $word), str_replace('\\', '/', \Illuminate\Support\Facades\Storage::disk('local')->path(SuratService::FOLDER_TEMPLATE_WORD))),
-            'wordBawaan' => is_file(resource_path('surat/'.$layanan->slug.'.docx')),
+            'wordBawaan' => collect(SuratService::EKSTENSI_TEMPLATE)->contains(fn ($e) => is_file(resource_path('surat/'.$layanan->slug.'.'.$e))),
+            'ext' => SuratService::ekstensiTemplate($layanan),
         ]);
     }
 
@@ -86,22 +87,33 @@ class LayananController extends Controller
         $word = SuratService::templateWord($layanan);
         abort_unless($word, 404);
 
-        return response()->download($word, 'TEMPLATE_'.Str::slug($layanan->nama, '_').'.docx');
+        return response()->download($word, 'TEMPLATE_'.Str::slug($layanan->nama, '_').'.'.SuratService::ekstensiTemplate($layanan));
     }
 
     public function unggahWord(Request $request, Layanan $layanan)
     {
-        $request->validate(['template_word' => 'required|file|mimes:docx|max:10240']);
-        $request->file('template_word')->storeAs(SuratService::FOLDER_TEMPLATE_WORD, $layanan->slug.'.docx', 'local');
+        $request->validate(['template_word' => 'required|file|mimes:docx,xlsx|max:10240'], [
+            'template_word.mimes' => 'File harus .docx (Word) atau .xlsx (Excel). File .doc/.xls lama: buka di Word/Excel lalu Save As .docx/.xlsx.',
+        ]);
+        $ext = strtolower($request->file('template_word')->getClientOriginalExtension()) === 'xlsx' ? 'xlsx' : 'docx';
+        $this->hapusUnggahan($layanan);
+        $request->file('template_word')->storeAs(SuratService::FOLDER_TEMPLATE_WORD, $layanan->slug.'.'.$ext, 'local');
 
-        return back()->with('ok', 'Template Word disimpan. Surat berikutnya memakai file ini.');
+        return back()->with('ok', 'Template '.($ext === 'xlsx' ? 'Excel' : 'Word').' disimpan. Surat berikutnya memakai file ini.');
     }
 
     public function hapusWord(Layanan $layanan)
     {
-        \Illuminate\Support\Facades\Storage::disk('local')->delete(SuratService::FOLDER_TEMPLATE_WORD.'/'.$layanan->slug.'.docx');
+        $this->hapusUnggahan($layanan);
 
-        return back()->with('ok', 'Template Word unggahan dihapus.');
+        return back()->with('ok', 'Template unggahan dihapus.');
+    }
+
+    private function hapusUnggahan(Layanan $layanan): void
+    {
+        foreach (SuratService::EKSTENSI_TEMPLATE as $e) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete(SuratService::FOLDER_TEMPLATE_WORD.'/'.$layanan->slug.'.'.$e);
+        }
     }
 
     public function simpanTemplate(Request $request, Layanan $layanan)
@@ -115,7 +127,7 @@ class LayananController extends Controller
     /** Pratinjau template dengan data contoh, dalam format PDF atau Word. */
     public function pratinjau(Request $request, Layanan $layanan, SuratService $surat, string $format)
     {
-        abort_unless(in_array($format, ['pdf', 'docx']), 404);
+        abort_unless(in_array($format, ['pdf', 'docx', 'xlsx']), 404);
 
         $contoh = new Permohonan([
             'nik' => '6303000101900001', 'nama' => 'Nama Contoh Warga', 'no_hp' => '081200000000',
@@ -124,20 +136,26 @@ class LayananController extends Controller
                 'no_kk' => '6303000101900000', 'tempat_lahir' => 'Martapura', 'tanggal_lahir' => '1990-01-01',
                 'jenis_kelamin' => 'Laki-laki', 'agama' => 'Islam', 'status_perkawinan' => 'Kawin', 'pekerjaan' => 'Wiraswasta',
                 'kewarganegaraan' => 'WNI', 'alamat' => 'Jl. Sekumpul Gg. Contoh No. 1', 'rt' => '001', 'rw' => '001',
-            ], collect($layanan->isian ?? [])->mapWithKeys(fn ($i) => [$i['key'] => $i['tipe'] === 'tanggal' ? now()->toDateString() : '['.$i['label'].']'])->all()),
+            ], collect($layanan->isian ?? [])->mapWithKeys(fn ($i) => [$i['key'] => match ($i['tipe']) {
+                'tanggal' => now()->toDateString(),
+                'pilihan' => $i['pilihan'][0] ?? '',
+                default => '['.$i['label'].']',
+            }])->all()),
         ]);
         $contoh->setRelation('layanan', $layanan);
 
         $word = SuratService::templateWord($layanan);
-        if ($format === 'docx' && $word) {
-            $isi = $surat->docxDariWord($contoh, $word);
+        if ($word && $format !== 'pdf') {
+            $format = SuratService::ekstensiTemplate($layanan);
+            $isi = $surat->isiTemplateKantor($contoh, $word);
         } else {
+            abort_if($format === 'xlsx', 404);
             $html = $surat->isiTemplate($request->input('template_html', $layanan->template_html ?? ''), $surat->nilaiPenanda($contoh));
             $isi = $format === 'pdf' ? $surat->pdf($html) : $surat->docx($html);
         }
 
         return response($isi, 200, [
-            'Content-Type' => $format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Type' => SuratService::MIME[$format],
             'Content-Disposition' => ($format === 'pdf' ? 'inline' : 'attachment').'; filename="CONTOH_'.Str::slug($layanan->nama, '_').'.'.$format.'"',
         ]);
     }

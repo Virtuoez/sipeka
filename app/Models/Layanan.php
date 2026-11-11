@@ -82,6 +82,13 @@ class Layanan extends Model
                 $wajib = ! Str::contains(Str::lower($baris), '(opsional)');
                 $baris = trim(preg_replace('/\(opsional\)/i', '', $baris));
                 [$label, $tipe] = array_pad(array_map('trim', explode('|', $baris, 2)), 2, 'teks');
+                // "Label | pilihan: A; B; C" → daftar pilihan (nomor urut pilihan tersedia sebagai {key}_kode)
+                if (preg_match('/^pilihan\s*:(.*)$/i', $tipe, $m)) {
+                    $pilihan = array_values(array_filter(array_map('trim', explode(';', $m[1])), 'strlen'));
+                    if ($pilihan) {
+                        return ['key' => Str::slug($label, '_'), 'label' => $label, 'tipe' => 'pilihan', 'pilihan' => $pilihan, 'wajib' => $wajib];
+                    }
+                }
                 $tipe = in_array($tipe, ['teks', 'paragraf', 'tanggal', 'angka']) ? $tipe : 'teks';
 
                 return ['key' => Str::slug($label, '_'), 'label' => $label, 'tipe' => $tipe, 'wajib' => $wajib];
@@ -99,7 +106,7 @@ class Layanan extends Model
     public function isianTeks(): string
     {
         return collect($this->isian ?? [])
-            ->map(fn ($i) => $i['label'].' | '.$i['tipe'].($i['wajib'] ? '' : ' (opsional)'))
+            ->map(fn ($i) => $i['label'].' | '.$i['tipe'].($i['tipe'] === 'pilihan' ? ': '.implode('; ', $i['pilihan'] ?? []) : '').($i['wajib'] ? '' : ' (opsional)'))
             ->implode("\n");
     }
 }

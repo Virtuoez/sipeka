@@ -116,8 +116,19 @@
                     @php($lama = old('isian.'.$isian['key']))
                     <div class="{{ $isian['tipe'] === 'paragraf' ? 'col-12' : 'col-md-6' }}">
                         <label class="form-label">{{ $isian['label'] }} @if ($isian['wajib'])<span class="text-danger">*</span>@endif</label>
-                        @if ($isian['tipe'] === 'paragraf')
-                            <textarea name="{{ $nama }}" rows="2" class="form-control form-control-lg @error('isian.'.$isian['key']) is-invalid @enderror" @required($isian['wajib'])>{{ $lama }}</textarea>
+                        @if ($isian['tipe'] === 'pilihan')
+                            <select name="{{ $nama }}" class="form-select form-select-lg @error('isian.'.$isian['key']) is-invalid @enderror" @required($isian['wajib'])>
+                                <option value="">- pilih -</option>
+                                @foreach ($isian['pilihan'] ?? [] as $no => $opsi)
+                                    <option value="{{ $opsi }}" @selected($lama === $opsi)>{{ $no + 1 }}. {{ $opsi }}</option>
+                                @endforeach
+                            </select>
+                        @elseif ($isian['tipe'] === 'paragraf')
+                            <textarea name="{{ $nama }}" rows="{{ $isian['key'] === 'anggota_yang_pindah' ? 4 : 2 }}" class="form-control form-control-lg @error('isian.'.$isian['key']) is-invalid @enderror" @required($isian['wajib'])
+                                @if ($isian['key'] === 'anggota_yang_pindah') placeholder="6303xxxxxxxxxxxx - NAMA - Anak" @endif>{{ $lama }}</textarea>
+                            @if ($isian['key'] === 'anggota_yang_pindah')
+                                <div class="form-text">Satu orang per baris: <b>NIK - Nama - Keterangan</b> (maks. 6 orang). Kosongkan kalau yang pindah hanya pemohon.</div>
+                            @endif
                         @else
                             <input type="{{ ['tanggal' => 'date', 'angka' => 'number'][$isian['tipe']] ?? 'text' }}" name="{{ $nama }}" value="{{ $lama }}" class="form-control form-control-lg @error('isian.'.$isian['key']) is-invalid @enderror" @required($isian['wajib'])>
                         @endif

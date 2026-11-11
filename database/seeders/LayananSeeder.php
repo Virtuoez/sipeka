@@ -54,7 +54,7 @@ class LayananSeeder extends Seeder
         'pengantar-kk' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
         'kelahiran' => ['pemerintahan', '{no} / KS-SKK / {bulan_romawi} / {tahun}'],
         'kematian' => ['kematian', '472. M / {no} / KS - {bulan_romawi} / {tahun}'],
-        'pindah' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'pindah' => ['pemerintahan', '{no} / 476.P / PEM-KS / {bulan_romawi} / {tahun}'],
         'orang-yang-sama' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
         'pemekaran' => ['pemerintahan', '{no} / SK-Pem / {bulan_romawi} / {tahun}'],
         'skbb' => ['pemerintahan', '{no} / SKKB / KS - {bulan_romawi} / {tahun}'],
@@ -74,6 +74,11 @@ class LayananSeeder extends Seeder
         'pemerintahan' => 'Kasi Pemerintahan',
         'kesos' => 'Kasi Kesejahteraan Sosial',
         'pm' => 'Kasi Pemberdayaan Masyarakat',
+    ];
+
+    /** Format nomor bawaan versi lama; kalau masih sama (belum diubah admin), diganti format terbaru. */
+    private const NOMOR_LAMA = [
+        'pindah' => '{no} / KS-Pem / {bulan_romawi} / {tahun}',
     ];
 
     /** Sebutan jabatan di kalimat pembuka surat Kasi (seperti surat kantor). */
@@ -270,11 +275,20 @@ class LayananSeeder extends Seeder
                 'slug' => 'pindah', 'nama' => 'Surat Keterangan Pindah', 'kode_surat' => '476', 'folder' => '08 - Keterangan Pindah', 'ikon' => 'truck', 'bidang' => 'pemerintahan',
                 'deskripsi' => 'Pengantar pindah keluar dari Kelurahan Sekumpul.',
                 'persyaratan' => "KTP\nKartu Keluarga\n$rt",
-                'isian' => "Nama Kepala Keluarga | teks\nAlamat Tujuan | paragraf\nRT RW Tujuan | teks (opsional)\nKelurahan Tujuan | teks\nKecamatan Tujuan | teks\nKabupaten Kota Tujuan | teks\nProvinsi Tujuan | teks\nAlasan Pindah | teks\nJumlah Anggota yang Ikut Pindah | angka",
+                // Mengikuti Formulir Permohonan Pindah WNI kantor (Excel): pilihan disimpan sebagai teks, kodenya {key}_kode
+                'isian' => "Nama Kepala Keluarga | teks\nNIK Kepala Keluarga | teks\nAlamat Tujuan | teks\nRT Tujuan | teks\nRW Tujuan | teks\n"
+                    ."Kelurahan Tujuan | teks\nKecamatan Tujuan | teks\nKabupaten Kota Tujuan | teks\nProvinsi Tujuan | teks\n"
+                    ."Kode Pos Tujuan | teks (opsional)\nTelepon | teks (opsional)\n"
+                    ."Alasan Pindah | pilihan: Pekerjaan; Pendidikan; Keamanan; Kesehatan; Perumahan; Keluarga\n"
+                    ."Klasifikasi Pindah | pilihan: Dalam Satu Desa / Kelurahan; Antar Desa / Kelurahan; Antar Kecamatan; Antar Kab/Kota; Antar Propinsi\n"
+                    ."Jenis Kepindahan | pilihan: Kepala Keluarga; Anggota Keluarga; Kep. Keluarga & Sebagian Ang. Keluarga; Kep. Keluarga & Seluruh Ang. Keluarga\n"
+                    ."Status KK bagi yang Tidak Pindah | pilihan: Numpang KK; Membuat KK Baru; No KK Baru (opsional)\n"
+                    ."Status KK bagi yang Pindah | pilihan: Numpang KK; Membuat KK Baru; No KK Baru\n"
+                    ."Anggota yang Pindah | paragraf (opsional)",
                 'html' => $this->judul('Surat Keterangan Pindah').$this->p('Yang bertanda tangan di bawah ini, menerangkan Permohonan Pindah Penduduk WNI dengan data sebagai berikut :')
                     .$this->tabel(['NIK' => '{{nik}}', 'Nama Lengkap' => '<strong>{{nama}}</strong>', 'Nomor KK' => '{{no_kk}}', 'Nama Kepala Keluarga' => '{{nama_kepala_keluarga}}', 'Alamat Sekarang' => $this->alamat()], 30)
                     .$this->p('Alamat Tujuan Pindah :')
-                    .$this->tabel(['Alamat' => '{{alamat_tujuan}}', 'RT/RW' => '{{rt_rw_tujuan}}', 'Desa/Kelurahan' => '{{kelurahan_tujuan}}', 'Kecamatan' => '{{kecamatan_tujuan}}', 'Kabupaten/Kota' => '{{kabupaten_kota_tujuan}}', 'Provinsi' => '{{provinsi_tujuan}}', 'Alasan Pindah' => '{{alasan_pindah}}', 'Jumlah Keluarga yang Pindah' => '{{jumlah_anggota_yang_ikut_pindah}} orang'], 30)
+                    .$this->tabel(['Alamat' => '{{alamat_tujuan}}', 'RT/RW' => '{{rt_tujuan}}/{{rw_tujuan}}', 'Desa/Kelurahan' => '{{kelurahan_tujuan}}', 'Kecamatan' => '{{kecamatan_tujuan}}', 'Kabupaten/Kota' => '{{kabupaten_kota_tujuan}}', 'Provinsi' => '{{provinsi_tujuan}}', 'Alasan Pindah' => '{{alasan_pindah}}', 'Anggota yang Pindah' => '{{anggota_yang_pindah}}'], 30)
                     .$this->p('Adapun permohonan pindah Penduduk WNI yang bersangkutan sebagaimana terlampir.')
                     .$this->p('Demikian Surat Pengantar Pindah ini dibuat agar dapat digunakan sebagaimana mestinya.')
                     .$this->ttdKasi('pemerintahan'),
@@ -493,7 +507,8 @@ class LayananSeeder extends Seeder
                 }
             }
             // Format nomor yang sudah diatur admin tidak ditimpa
-            $nomor = $timpaTemplate || ! $ada->format_nomor ? $nomor : [];
+            $nomorLama = ! $ada->format_nomor || $ada->format_nomor === (self::NOMOR_LAMA[$l['slug']] ?? null);
+            $nomor = $timpaTemplate || $nomorLama ? $nomor : [];
             // Folder arsip layanan lama tidak diubah, supaya arsip lama & baru tetap satu folder
             $ada->update(($timpaTemplate || $belumDiedit ? $nilai : []) + $atur + $nomor);
         }
