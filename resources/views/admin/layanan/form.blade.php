@@ -17,6 +17,16 @@
             <div class="form-text">Dipakai di nomor surat sebagai {kode}.</div>
         </div>
         <div class="col-md-6">
+            <label class="form-label">Dikerjakan oleh</label>
+            <select name="bidang" class="form-select">
+                <option value="">Semua Kasi</option>
+                @foreach (\App\Models\Layanan::BIDANG as $kunci => $label)
+                    <option value="{{ $kunci }}" @selected(old('bidang', $layanan->bidang) === $kunci)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <div class="form-text">Permohonan surat ini hanya muncul di antrean Kasi tersebut, dan arsipnya masuk folder Kasi itu.</div>
+        </div>
+        <div class="col-md-6">
             <label class="form-label">Nama Folder Arsip</label>
             <input name="folder" value="{{ old('folder', $layanan->folder) }}" class="form-control" placeholder="mis. 10 - Keterangan Ahli Waris">
             <div class="form-text">Semua berkas layanan ini masuk ke folder ini. Kosongkan = pakai nama layanan.</div>

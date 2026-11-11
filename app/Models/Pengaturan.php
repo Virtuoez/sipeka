@@ -31,6 +31,13 @@ class Pengaturan extends Model
         'nama_lurah' => 'NAMA LURAH',
         'nip_lurah' => '19xxxxxxxxxxxxxxxx',
         'jabatan_ttd' => 'Lurah Sekumpul',
+        // Penandatangan "a.n. Lurah" per bidang Kasi (dipakai template {{nama_kasi_pemerintahan}} dst.)
+        'nama_kasi_pemerintahan' => 'NAMA KASI PEMERINTAHAN',
+        'nip_kasi_pemerintahan' => '19xxxxxxxxxxxxxxxx',
+        'nama_kasi_kesos' => 'NAMA KASI KESOS',
+        'nip_kasi_kesos' => '19xxxxxxxxxxxxxxxx',
+        'nama_kasi_pm' => 'NAMA KASI PM',
+        'nip_kasi_pm' => '19xxxxxxxxxxxxxxxx',
         'format_nomor' => '{kode}/{no}/KEL-SKP/{bulan_romawi}/{tahun}',
         'kertas' => 'A4',
         'logo' => '',

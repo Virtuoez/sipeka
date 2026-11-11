@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'pin'])]
+#[Fillable(['name', 'email', 'password', 'role', 'pin', 'bidang'])]
 #[Hidden(['password', 'remember_token', 'pin'])]
 class User extends Authenticatable
 {
@@ -81,5 +81,11 @@ class User extends Authenticatable
     public function labelPeran(): string
     {
         return self::PERAN[$this->role] ?? ($this->isTamu() ? 'Tamu (Demo)' : $this->role);
+    }
+
+    /** Bidang Kasi (pemerintahan/kesos/pm). Kosong = Kasi menerima semua jenis surat. */
+    public function labelBidang(): ?string
+    {
+        return Layanan::BIDANG[$this->bidang] ?? null;
     }
 }

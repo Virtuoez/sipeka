@@ -92,6 +92,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::delete('/akun/{user}', [Admin\AkunController::class, 'destroy'])->name('akun.destroy');
         Route::put('/akun/{user}/pin', [Admin\AkunController::class, 'aturPin'])->name('akun.pin');
         Route::put('/akun/{user}/email', [Admin\AkunController::class, 'aturEmail'])->name('akun.email');
+        Route::put('/akun/{user}/bidang', [Admin\AkunController::class, 'aturBidang'])->name('akun.bidang');
     });
 
     // Data penduduk: semua peran boleh melihat. Didaftarkan paling akhir supaya

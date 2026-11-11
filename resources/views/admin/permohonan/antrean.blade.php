@@ -35,7 +35,11 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-list-ol me-1"></i> Antrean Belum Diambil ({{ $antrean->count() }})</span>
+        <span><i class="bi bi-list-ol me-1"></i> Antrean Belum Diambil ({{ $antrean->count() }})
+            @if (auth()->user()->labelBidang())
+                <span class="badge text-bg-success ms-1">khusus surat {{ auth()->user()->labelBidang() }}</span>
+            @endif
+        </span>
         <span class="small text-muted fw-normal"><i class="bi bi-arrow-repeat"></i> Diperbarui otomatis tiap 10 detik</span>
     </div>
     @if ($antrean->isEmpty())

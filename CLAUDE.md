@@ -76,6 +76,16 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
   (seeder/console pakai `withoutGlobalScope`). Unik antrian = (tanggal, nomor, contoh); kode contoh berawalan `C`; arsip contoh di `arsip-contoh/`
   (`ArsipService::root()`). Data contoh tamu dari hari sebelumnya dihapus saat tamu masuk.
 - Kasi boleh membuka Arsip Berkas (permintaan pemilik).
+
+## Kasi per bidang (permintaan pemilik, dari folder kantor `kasi pemerintahan` / `kasi kesos` / `kasi pm`)
+- `Layanan::BIDANG` (pemerintahan/kesos/pm). `layanan.bidang` = Kasi yang mengerjakan; `users.bidang` = bidang akun Kasi.
+  Akun: Kasi Pemerintahan, Kasi Kesos, Kasi PM (dulu Kasi PC 1/2/3; diganti nama oleh migration `kasi_per_bidang`).
+- Antrean & lencana memakai scope `Permohonan::bagianKasi($user)`; `ambil()` dan `bolehDilihat()` cek `Layanan::untukKasi()`.
+  Kasi tanpa bidang / layanan tanpa bidang = semua. Admin mengatur bidang di Akun Petugas & form Layanan.
+- Arsip: `arsip/{Kasi Bidang}/{folder layanan}/{tahun}/{bulan}/...`.
+- 19 template mengikuti format surat kantor (contoh asli di `D:\projek sekumpul\kasi *`, BERISI DATA WARGA ASLI, jangan di-commit).
+  Penanda penandatangan Kasi: `{{nama_kasi_pemerintahan}}`, `{{nip_kasi_kesos}}`, dst (isi di Profil Kelurahan).
+  `LayananSeeder::pasang(false)` (dipakai migration) hanya menimpa template yang md5-nya cocok `TEMPLATE_LAMA` (belum diedit admin).
 - `.neon`, `neon.ts`, perubahan `package.json`/`package-lock.json` dari `neon init` sengaja TIDAK di-commit (alat lokal).
 
 ## Data sensitif

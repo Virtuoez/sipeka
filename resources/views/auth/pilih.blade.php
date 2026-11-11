@@ -125,7 +125,7 @@
         }
 
 
-        const judulPilih = { kasi: 'Pilih komputer Kasi yang ini:', pelayanan: 'Pilih petugas Pelayanan:' };
+        const judulPilih = { kasi: 'Pilih Kasi:', pelayanan: 'Pilih petugas Pelayanan:' };
         function tampilkan(peran) {
             document.getElementById('langkahPeran').classList.add('d-none');
             document.getElementById('pilih-' + peran).classList.remove('d-none');

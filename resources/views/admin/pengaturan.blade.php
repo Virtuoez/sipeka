@@ -43,6 +43,11 @@
             <div class="col-md-4"><label class="form-label">Nama Lurah / Penandatangan</label><input name="nama_lurah" value="{{ old('nama_lurah', $s['nama_lurah']) }}" class="form-control" required></div>
             <div class="col-md-4"><label class="form-label">NIP</label><input name="nip_lurah" value="{{ old('nip_lurah', $s['nip_lurah']) }}" class="form-control"></div>
             <div class="col-md-4"><label class="form-label">Jabatan</label><input name="jabatan_ttd" value="{{ old('jabatan_ttd', $s['jabatan_ttd']) }}" class="form-control" required></div>
+            <div class="col-12"><div class="small text-muted">Penandatangan <b>a.n. Lurah</b> untuk surat yang ditandatangani Kasi (mis. Surat Pemekaran, SKBB, Domisili Usaha).</div></div>
+            @foreach (\App\Models\Layanan::BIDANG as $kunci => $label)
+                <div class="col-md-6"><label class="form-label">Nama {{ $label }}</label><input name="nama_kasi_{{ $kunci }}" value="{{ old('nama_kasi_'.$kunci, $s['nama_kasi_'.$kunci]) }}" class="form-control"></div>
+                <div class="col-md-6"><label class="form-label">NIP {{ $label }}</label><input name="nip_kasi_{{ $kunci }}" value="{{ old('nip_kasi_'.$kunci, $s['nip_kasi_'.$kunci]) }}" class="form-control"></div>
+            @endforeach
             <div class="col-12">
                 <label class="form-label">Format Nomor Surat</label>
                 <input name="format_nomor" value="{{ old('format_nomor', $s['format_nomor']) }}" class="form-control font-monospace" required>

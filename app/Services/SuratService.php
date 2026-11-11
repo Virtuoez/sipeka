@@ -48,6 +48,12 @@ class SuratService
         'nama_lurah' => 'Nama penandatangan',
         'nip_lurah' => 'NIP penandatangan',
         'jabatan_ttd' => 'Jabatan penandatangan',
+        'nama_kasi_pemerintahan' => 'Nama Kasi Pemerintahan',
+        'nip_kasi_pemerintahan' => 'NIP Kasi Pemerintahan',
+        'nama_kasi_kesos' => 'Nama Kasi Kesos',
+        'nip_kasi_kesos' => 'NIP Kasi Kesos',
+        'nama_kasi_pm' => 'Nama Kasi PM',
+        'nip_kasi_pm' => 'NIP Kasi PM',
     ];
 
     public static function tanggalIndo($tanggal): string
@@ -103,6 +109,10 @@ class SuratService
             'nip_lurah' => $s['nip_lurah'],
             'jabatan_ttd' => $s['jabatan_ttd'],
         ];
+        foreach (array_keys(\App\Models\Layanan::BIDANG) as $b) {
+            $nilai['nama_kasi_'.$b] = $s['nama_kasi_'.$b] ?? '';
+            $nilai['nip_kasi_'.$b] = $s['nip_kasi_'.$b] ?? '';
+        }
 
         foreach (['no_kk', 'tempat_lahir', 'jenis_kelamin', 'agama', 'status_perkawinan', 'pekerjaan', 'kewarganegaraan', 'alamat', 'rt', 'rw'] as $k) {
             $nilai[$k] = $d[$k] ?? '';

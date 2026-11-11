@@ -1,6 +1,6 @@
 @php($s = \App\Models\Pengaturan::semua())
 @php($u = auth()->user())
-@php($jumlahBaru = \App\Models\Permohonan::where('status', 'baru')->whereNull('petugas_id')->count())
+@php($jumlahBaru = \App\Models\Permohonan::bagianKasi($u)->where('status', 'baru')->whereNull('petugas_id')->count())
 <!DOCTYPE html>
 <html lang="id">
 <head>

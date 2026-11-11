@@ -11,7 +11,7 @@ use ZipArchive;
 /**
  * Mengatur folder arsip supaya berkas tersortir otomatis:
  *
- *   storage/app/private/arsip/{Folder Layanan}/{Tahun}/{MM - Bulan}/{YYMMDD-NNN}_{NAMA}/
+ *   storage/app/private/arsip/{Kasi Bidang}/{Folder Layanan}/{Tahun}/{MM - Bulan}/{YYMMDD-NNN}_{NAMA}/
  *       SURAT_Surat_Keterangan_Domisili_NAMA.pdf
  *       SURAT_Surat_Keterangan_Domisili_NAMA.docx
  */
@@ -46,13 +46,17 @@ class ArsipService
         $tanggal = $p->created_at ?? now();
         $bulan = $tanggal->format('m').' - '.ucfirst($tanggal->locale('id')->translatedFormat('F'));
 
-        return implode('/', [
+        // Dikelompokkan per Kasi seperti folder kantor: arsip/Kasi Pemerintahan/04 - Keterangan Kematian/...
+        $bidang = \App\Models\Layanan::BIDANG[$p->layanan->bidang] ?? null;
+
+        return implode('/', array_filter([
             $p->contoh ? self::ROOT_CONTOH : self::ROOT,
+            $bidang,
             $p->layanan->folder,
             $tanggal->format('Y'),
             $bulan,
             $p->kode.'_'.Str::upper(self::namaAman($p->nama, 40)),
-        ]);
+        ]));
     }
 
     public function namaFileSurat(Permohonan $p, string $ext): string

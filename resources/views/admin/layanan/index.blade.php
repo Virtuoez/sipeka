@@ -14,7 +14,8 @@
             <tbody>
                 @foreach ($daftar as $l)
                     <tr>
-                        <td><i class="bi bi-{{ $l->ikon }} text-primary me-1"></i> <strong>{{ $l->nama }}</strong></td>
+                        <td><i class="bi bi-{{ $l->ikon }} text-primary me-1"></i> <strong>{{ $l->nama }}</strong>
+                            <div><span class="badge text-bg-{{ $l->bidang ? 'success' : 'light' }} fw-normal">{{ $l->labelBidang() }}</span></div></td>
                         <td class="small"><i class="bi bi-folder-fill text-warning"></i> {{ $l->folder }}</td>
                         <td class="small">{{ $l->kode_surat }}</td>
                         <td class="small">{{ count($l->persyaratan ?? []) }} berkas</td>

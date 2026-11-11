@@ -66,7 +66,8 @@ class PermohonanController extends Controller
             'milikSaya' => Permohonan::with('layanan')
                 ->where('status', 'diproses')->where('petugas_id', $request->user()->id)
                 ->orderBy('diambil_at')->get(),
-            'antrean' => Permohonan::with('layanan')
+            // Kasi hanya melihat jenis surat bidangnya (Pemerintahan / Kesos / PM)
+            'antrean' => Permohonan::with('layanan')->bagianKasi($request->user())
                 ->where('status', 'baru')->whereNull('petugas_id')
                 ->orderBy('tanggal_antrian')->orderBy('nomor_antrian')->get(),
         ]);
@@ -74,6 +75,9 @@ class PermohonanController extends Controller
 
     public function ambil(Permohonan $permohonan, Request $request)
     {
+        abort_unless($permohonan->layanan?->untukKasi($request->user()), 403,
+            'Surat ini bagian '.$permohonan->layanan?->labelBidang().', bukan bagian akun ini.');
+
         if (! $permohonan->ambilOleh($request->user())) {
             $permohonan->refresh()->load('petugas');
             $oleh = $permohonan->petugas ? ' oleh '.$permohonan->petugas->name : '';

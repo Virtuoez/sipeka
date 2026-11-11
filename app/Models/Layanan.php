@@ -12,6 +12,27 @@ class Layanan extends Model
 
     protected $guarded = ['id'];
 
+    /**
+     * Bidang Kasi yang mengerjakan jenis surat ini (sesuai folder arsip kantor: kasi pemerintahan / kasi kesos / kasi pm).
+     * Permohonan hanya muncul di antrean Kasi dengan bidang yang sama. Layanan tanpa bidang muncul di semua Kasi.
+     */
+    public const BIDANG = [
+        'pemerintahan' => 'Kasi Pemerintahan',
+        'kesos' => 'Kasi Kesos',
+        'pm' => 'Kasi PM',
+    ];
+
+    public function labelBidang(): string
+    {
+        return self::BIDANG[$this->bidang] ?? 'Semua Kasi';
+    }
+
+    /** Apakah akun ini boleh mengambil surat jenis ini dari antrean. */
+    public function untukKasi(User $user): bool
+    {
+        return ! $user->isKasi() || ! $user->bidang || ! $this->bidang || $this->bidang === $user->bidang;
+    }
+
     protected function casts(): array
     {
         return [

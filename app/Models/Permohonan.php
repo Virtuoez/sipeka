@@ -130,6 +130,18 @@ class Permohonan extends Model
             ->update(['status' => 'diproses', 'petugas_id' => $user->id, 'diambil_at' => now(), 'updated_at' => now()]) === 1;
     }
 
+    /** Hanya jenis surat bagian Kasi ini (Kasi tanpa bidang & peran lain melihat semua). */
+    public function scopeBagianKasi($query, User $user)
+    {
+        if ($user->isKasi() && $user->bidang) {
+            $query->whereHas('layanan', fn ($l) => $l->where(
+                fn ($w) => $w->whereNull('bidang')->orWhere('bidang', $user->bidang)
+            ));
+        }
+
+        return $query;
+    }
+
     /** Kembalikan ke antrean supaya bisa diambil komputer lain. */
     public function lepaskan(): void
     {
@@ -146,8 +158,8 @@ class Permohonan extends Model
         }
 
         // Kasi: yang masih menunggu di antrean, atau yang sedang ia kerjakan sendiri
-        return ($this->status === 'baru' && ! $this->petugas_id)
-            || ($this->status === 'diproses' && $this->petugas_id === $user->id);
+        return ($this->status === 'baru' && ! $this->petugas_id && $this->layanan?->untukKasi($user))
+            ||($this->status === 'diproses' && $this->petugas_id === $user->id);
     }
 
     /** Boleh mengedit & mencetak surat. */

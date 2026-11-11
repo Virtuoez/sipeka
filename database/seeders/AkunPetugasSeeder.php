@@ -17,16 +17,18 @@ class AkunPetugasSeeder extends Seeder
     public function run(): void
     {
         $akun = [
-            ['pelayanan@sekumpul.test', 'Admin Pelayanan', 'pelayanan'],
-            ['kasi1@sekumpul.test', 'Kasi PC 1', 'kasi'],
-            ['kasi2@sekumpul.test', 'Kasi PC 2', 'kasi'],
-            ['kasi3@sekumpul.test', 'Kasi PC 3', 'kasi'],
+            ['pelayanan@sekumpul.test', 'Admin Pelayanan', 'pelayanan', null],
+            // Satu akun per bidang Kasi (sesuai folder kantor). Surat otomatis masuk ke Kasi bidangnya.
+            ['kasi1@sekumpul.test', 'Kasi Pemerintahan', 'kasi', 'pemerintahan'],
+            ['kasi2@sekumpul.test', 'Kasi Kesos', 'kasi', 'kesos'],
+            ['kasi3@sekumpul.test', 'Kasi PM', 'kasi', 'pm'],
         ];
 
-        foreach ($akun as [$email, $nama, $peran]) {
+        foreach ($akun as [$email, $nama, $peran, $bidang]) {
             User::firstOrCreate(['email' => $email], [
                 'name' => $nama,
                 'role' => $peran,
+                'bidang' => $bidang,
                 'password' => 'sekumpul123',
             ]);
         }

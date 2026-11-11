@@ -18,7 +18,20 @@
                         @foreach ($daftar as $u)
                             <tr>
                                 <td>{{ $u->name }}</td>
-                                <td><span class="badge text-bg-{{ ['admin' => 'danger', 'pelayanan' => 'primary', 'kasi' => 'success'][$u->role] ?? 'secondary' }}">{{ $u->labelPeran() }}</span></td>
+                                <td>
+                                    <span class="badge text-bg-{{ ['admin' => 'danger', 'pelayanan' => 'primary', 'kasi' => 'success'][$u->role] ?? 'secondary' }}">{{ $u->labelPeran() }}</span>
+                                    @if ($u->isKasi())
+                                        <form method="post" action="{{ route('admin.akun.bidang', $u) }}" class="mt-1">
+                                            @csrf @method('PUT')
+                                            <select name="bidang" class="form-select form-select-sm" style="max-width: 190px" onchange="this.form.submit()" title="Jenis surat yang masuk ke antrean akun ini">
+                                                <option value="">Semua jenis surat</option>
+                                                @foreach (\App\Models\Layanan::BIDANG as $kunci => $label)
+                                                    <option value="{{ $kunci }}" @selected($u->bidang === $kunci)>Surat {{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </form>
+                                    @endif
+                                </td>
                                 <td class="small">
                                     @if ($modeGoogle)
                                         @php($belum = str_ends_with($u->email, '@sekumpul.local') || str_ends_with($u->email, '@sekumpul.test'))
@@ -82,7 +95,7 @@
             @csrf
             <div class="card-header">Tambah Akun</div>
             <div class="card-body">
-                <div class="mb-2"><label class="form-label">Nama</label><input name="name" value="{{ old('name') }}" class="form-control" placeholder="mis. Kasi PC 4" required></div>
+                <div class="mb-2"><label class="form-label">Nama</label><input name="name" value="{{ old('name') }}" class="form-control" placeholder="mis. Kasi Pemerintahan 2" required></div>
                 <div class="mb-2">
                     <label class="form-label">Peran</label>
                     <select name="role" class="form-select" id="pilihPeran">
@@ -91,6 +104,16 @@
                         <option value="admin" @selected(old('role') === 'admin')>Admin (semua menu + pengaturan &amp; akun)</option>
                     </select>
                     <div class="form-text">{{ $modeGoogle ? 'Kasi & Pelayanan masuk dengan akun Google sesuai email di bawah.' : 'Kasi & Pelayanan masuk dengan menekan tombol bernama ini.' }} Untuk Kasi, buat satu akun per komputer/orang.</div>
+                </div>
+                <div id="isianBidang" class="mb-2">
+                    <label class="form-label">Bidang Kasi</label>
+                    <select name="bidang" class="form-select">
+                        <option value="">Semua jenis surat</option>
+                        @foreach (\App\Models\Layanan::BIDANG as $kunci => $label)
+                            <option value="{{ $kunci }}" @selected(old('bidang') === $kunci)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <div class="form-text">Hanya surat bidang ini yang muncul di antrean akun ini.</div>
                 </div>
                 <div id="isianEmail" class="mb-2">
                     <label class="form-label" id="labelEmail">Email</label>
@@ -120,13 +143,14 @@
         const el = document.getElementById(id);
         if (!el) return;
         el.classList.toggle('d-none', !ya);
-        el.querySelectorAll('input').forEach((i) => i.disabled = !ya);
+        el.querySelectorAll('input, select').forEach((i) => i.disabled = !ya);
     };
     const atur = () => {
         const admin = peran.value === 'admin';
         tampil('isianEmail', admin || modeGoogle);
         tampil('isianPassword', admin);
         tampil('isianPin', !admin);
+        tampil('isianBidang', peran.value === 'kasi');
         document.getElementById('labelEmail').textContent = admin ? 'Email' : 'Email Google';
     };
     peran.addEventListener('change', atur);

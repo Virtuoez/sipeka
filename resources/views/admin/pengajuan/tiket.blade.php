@@ -21,7 +21,7 @@
         <p class="small text-muted">Sampaikan nomor ini ke warga dan minta menunggu dipanggil.</p>
 
         <div class="d-grid gap-2">
-            <a href="{{ route('admin.pengajuan.index') }}" class="btn btn-primary btn-lg"><i class="bi bi-plus-circle me-1"></i> Layani Warga Berikutnya</a>
+            <a href="{{ route('admin.pengajuan.index') }}" class="btn btn-primary btn-lg"><i class="bi bi-plus-circle me-1"></i> Buat Surat Baru</a>
             <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i> Cetak</button>
         </div>
     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Layanan;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,12 +25,16 @@ class AkunController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:users,name',
             'role' => 'required|in:'.implode(',', array_keys(User::PERAN)),
+            'bidang' => ['nullable', Rule::in(array_keys(Layanan::BIDANG))],
             // Admin: email + password. Pelayanan & Kasi: email Google (untuk versi online) opsional.
             'email' => 'required_if:role,admin|nullable|email|unique:users,email',
             'password' => ['required_if:role,admin', 'nullable', Password::min(8)],
             'pin' => [config('app.wajib_pin') && config('app.mode_masuk') === 'tombol' ? 'required_unless:role,admin' : 'nullable', 'nullable', 'regex:/^\d{4,6}$/'],
         ], ['pin.regex' => 'PIN harus 4–6 angka.'], ['name' => 'nama']);
 
+        if ($data['role'] !== 'kasi') {
+            $data['bidang'] = null;
+        }
         if ($data['role'] === 'admin') {
             unset($data['pin']);
         } else {
@@ -54,6 +59,16 @@ class AkunController extends Controller
         $user->update(['email' => Str::lower($data['email'])]);
 
         return back()->with('ok', "{$user->name} sekarang masuk dengan Google memakai {$user->email}.");
+    }
+
+    /** Bidang Kasi: menentukan jenis surat yang muncul di antreannya. */
+    public function aturBidang(Request $request, User $user)
+    {
+        abort_unless($user->isKasi(), 422, 'Bidang hanya untuk akun Kasi.');
+        $data = $request->validate(['bidang' => ['nullable', Rule::in(array_keys(Layanan::BIDANG))]]);
+        $user->update(['bidang' => $data['bidang'] ?? null]);
+
+        return back()->with('ok', "{$user->name} sekarang menerima surat: ".($user->labelBidang() ?? 'semua jenis').'.');
     }
 
     /** Atur / ganti / hapus PIN akun Pelayanan atau Kasi. */
