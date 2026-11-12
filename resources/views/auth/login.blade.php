@@ -14,7 +14,8 @@
     <div class="container position-relative" style="max-width: 420px; z-index: 1">
         <div class="card p-4">
             <div class="text-center mb-3">
-                <div class="brand-logo mx-auto mb-2" style="width: 64px; height: 64px; font-size: 2rem"><i class="bi bi-shield-lock"></i></div>
+                <img src="{{ asset('icons/logo-banjar.png') }}" alt="Logo Kabupaten Banjar" height="72" class="mb-2">
+                <div class="small text-muted"><i class="bi bi-shield-lock"></i> Khusus Admin</div>
                 <h5 class="fw-bold mb-0 text-dark">Masuk sebagai Admin</h5>
                 <div class="small text-muted">Kelurahan {{ $s['nama_kelurahan'] }}</div>
             </div>

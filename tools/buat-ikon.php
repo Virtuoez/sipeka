@@ -1,83 +1,53 @@
 <?php
-// Membuat ikon aplikasi SIPEKA (gedung kantor putih di atas hijau) ke public/icons/.
-// Jalankan ulang kalau ingin mengubah warna:  php tools/buat-ikon.php
+// Membuat ikon aplikasi & logo website SIPEKA dari logo Kabupaten Banjar (resources/img/logo-kabupaten-banjar-hd.png)
+// ke public/icons/. Jalankan ulang kalau logonya diganti:  php tools/buat-ikon.php
 
-$hijau = [15, 107, 79];
-$emas = [201, 162, 39];
+$sumber = imagecreatefrompng(__DIR__.'/../resources/img/logo-kabupaten-banjar-hd.png');
 $keluar = __DIR__.'/../public/icons';
 @mkdir($keluar, 0777, true);
 
 /**
- * @param  float  $isi  porsi kanvas yang dipakai gambar (maskable butuh margin aman ~20%)
+ * Logo di tengah kanvas persegi.
+ *
+ * @param  float  $isi  tinggi logo dibanding kanvas (maskable butuh margin aman ~20%)
+ * @param  bool  $latarPutih  true = latar putih penuh (ikon Android/iOS), false = transparan
  */
-function gambar(int $s, bool $bulat, float $isi, array $hijau, array $emas): GdImage
+function ikon(GdImage $logo, int $s, float $isi, bool $latarPutih): GdImage
 {
-    // Gambar di 4x ukuran lalu diperkecil supaya tepinya halus
-    $k = 4;
-    $S = $s * $k;
-    $im = imagecreatetruecolor($S, $S);
+    $im = imagecreatetruecolor($s, $s);
     imagesavealpha($im, true);
-    imagefill($im, 0, 0, imagecolorallocatealpha($im, 0, 0, 0, 127));
-    $bg = imagecolorallocate($im, ...$hijau);
-    $putih = imagecolorallocate($im, 255, 255, 255);
-    $aksen = imagecolorallocate($im, ...$emas);
+    imagealphablending($im, false);
+    imagefill($im, 0, 0, $latarPutih ? imagecolorallocate($im, 255, 255, 255) : imagecolorallocatealpha($im, 0, 0, 0, 127));
+    imagealphablending($im, true);
 
-    if ($bulat) {
-        $r = (int) ($S * 0.22);
-        imagefilledrectangle($im, $r, 0, $S - $r, $S, $bg);
-        imagefilledrectangle($im, 0, $r, $S, $S - $r, $bg);
-        foreach ([[$r, $r], [$S - $r, $r], [$r, $S - $r], [$S - $r, $S - $r]] as [$x, $y]) {
-            imagefilledellipse($im, $x, $y, $r * 2, $r * 2, $bg);
-        }
-    } else {
-        imagefilledrectangle($im, 0, 0, $S, $S, $bg);
-    }
+    $lw = imagesx($logo);
+    $lh = imagesy($logo);
+    $h = (int) round($s * $isi);
+    $w = (int) round($h * $lw / $lh);
+    imagecopyresampled($im, $logo, intdiv($s - $w, 2), intdiv($s - $h, 2), 0, 0, $w, $h, $lw, $lh);
 
-    // Area gambar di tengah
-    $m = $S * (1 - $isi) / 2;
-    $w = $S - 2 * $m;
-    $x0 = $m;
-    $y0 = $m;
-    $u = fn ($v) => (int) round($v);
-
-    // Atap segitiga
-    imagefilledpolygon($im, [
-        $u($x0 + $w * 0.50), $u($y0 + $w * 0.08),
-        $u($x0 + $w * 0.06), $u($y0 + $w * 0.36),
-        $u($x0 + $w * 0.94), $u($y0 + $w * 0.36),
-    ], $putih);
-    // Bendera kecil (aksen emas) di atas atap
-    imagefilledrectangle($im, $u($x0 + $w * 0.495), $u($y0 - $w * 0.06), $u($x0 + $w * 0.515), $u($y0 + $w * 0.10), $putih);
-    imagefilledpolygon($im, [
-        $u($x0 + $w * 0.515), $u($y0 - $w * 0.06),
-        $u($x0 + $w * 0.64), $u($y0 - $w * 0.02),
-        $u($x0 + $w * 0.515), $u($y0 + $w * 0.02),
-    ], $aksen);
-    // Balok di bawah atap
-    imagefilledrectangle($im, $u($x0 + $w * 0.12), $u($y0 + $w * 0.39), $u($x0 + $w * 0.88), $u($y0 + $w * 0.45), $putih);
-    // 4 tiang
-    foreach ([0.17, 0.37, 0.57, 0.77] as $p) {
-        imagefilledrectangle($im, $u($x0 + $w * $p), $u($y0 + $w * 0.49), $u($x0 + $w * ($p + 0.06)), $u($y0 + $w * 0.78), $putih);
-    }
-    // Lantai bertingkat
-    imagefilledrectangle($im, $u($x0 + $w * 0.10), $u($y0 + $w * 0.81), $u($x0 + $w * 0.90), $u($y0 + $w * 0.86), $putih);
-    imagefilledrectangle($im, $u($x0 + $w * 0.04), $u($y0 + $w * 0.89), $u($x0 + $w * 0.96), $u($y0 + $w * 0.94), $aksen);
-
-    $hasil = imagecreatetruecolor($s, $s);
-    imagesavealpha($hasil, true);
-    imagefill($hasil, 0, 0, imagecolorallocatealpha($hasil, 0, 0, 0, 127));
-    imagecopyresampled($hasil, $im, 0, 0, 0, 0, $s, $s, $S, $S);
-
-    return $hasil;
+    return $im;
 }
 
 foreach ([
-    'ikon-192.png' => [192, true, 0.62],
-    'ikon-512.png' => [512, true, 0.62],
-    'ikon-maskable-512.png' => [512, false, 0.50], // Android memotong tepi; isi di zona aman
-    'apple-touch-icon.png' => [180, false, 0.60],
-    'favicon-32.png' => [32, true, 0.74],
-] as $nama => [$ukuran, $bulat, $isi]) {
-    imagepng(gambar($ukuran, $bulat, $isi, $hijau, $emas), "$keluar/$nama");
+    'ikon-192.png' => [192, 0.92, false],
+    'ikon-512.png' => [512, 0.92, false],
+    'ikon-maskable-512.png' => [512, 0.62, true], // Android memotong tepi; logo di zona aman
+    'apple-touch-icon.png' => [180, 0.82, true],
+    'favicon-32.png' => [32, 1.0, false],
+] as $nama => [$ukuran, $isi, $putih]) {
+    imagepng(ikon($sumber, $ukuran, $isi, $putih), "$keluar/$nama");
     echo "dibuat: public/icons/$nama\n";
 }
+
+// Logo untuk sidebar & halaman masuk (tinggi 160 px, latar transparan)
+$h = 160;
+$w = (int) round($h * imagesx($sumber) / imagesy($sumber));
+$logo = imagecreatetruecolor($w, $h);
+imagesavealpha($logo, true);
+imagealphablending($logo, false);
+imagefill($logo, 0, 0, imagecolorallocatealpha($logo, 0, 0, 0, 127));
+imagealphablending($logo, true);
+imagecopyresampled($logo, $sumber, 0, 0, 0, 0, $w, $h, imagesx($sumber), imagesy($sumber));
+imagepng($logo, "$keluar/logo-banjar.png");
+echo "dibuat: public/icons/logo-banjar.png\n";
