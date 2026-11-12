@@ -54,6 +54,7 @@
                             <td>
                                 <i class="bi {{ ['pdf' => 'bi-file-earmark-pdf text-danger', 'docx' => 'bi-file-earmark-word text-primary', 'xlsx' => 'bi-file-earmark-excel text-success', 'jpg' => 'bi-file-earmark-image text-success', 'jpeg' => 'bi-file-earmark-image text-success', 'png' => 'bi-file-earmark-image text-success'][$ext] ?? 'bi-file-earmark' }} me-1"></i>
                                 {{ $f['nama'] }}
+                                @if ($f['drive'])<i class="bi bi-google text-success ms-1" title="Tersimpan di Google Drive"></i>@endif
                             </td>
                             <td class="small">{{ number_format($f['ukuran'] / 1024, 0, ',', '.') }} KB</td>
                             <td class="small">{{ date('d/m/Y H:i', $f['waktu']) }}</td>

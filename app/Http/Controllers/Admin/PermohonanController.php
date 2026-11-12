@@ -231,9 +231,8 @@ class PermohonanController extends Controller
             abort_unless($format === SuratService::ekstensiTemplate($permohonan->layanan), 404, 'Surat ini dicetak dari file kantor. Unduh lewat tombol Unduh Surat.');
             // Surat selesai: pakai file yang sudah diarsipkan (bisa jadi file yang sudah diedit Kasi)
             $arsip = $permohonan->folder_path.'/'.$this->arsip->namaFileSurat($permohonan, $format);
-            $isi = $permohonan->status === 'selesai' && $permohonan->folder_path && ArsipService::disk()->exists($arsip)
-                ? ArsipService::disk()->get($arsip)
-                : $this->surat->isiTemplateKantor($permohonan, $word);
+            $isi = $permohonan->status === 'selesai' && $permohonan->folder_path ? $this->arsip->isi($arsip) : null;
+            $isi ??= $this->surat->isiTemplateKantor($permohonan, $word);
         } elseif ($format === 'xlsx') {
             abort(404);
         } else {
@@ -289,7 +288,7 @@ class PermohonanController extends Controller
     public function destroy(Permohonan $permohonan)
     {
         if ($permohonan->folder_path && ArsipService::pathAbsolut($permohonan->folder_path)) {
-            ArsipService::disk()->deleteDirectory($permohonan->folder_path);
+            $this->arsip->hapusFolder($permohonan->folder_path);
         }
         $permohonan->delete();
 

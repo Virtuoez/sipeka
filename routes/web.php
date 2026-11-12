@@ -91,6 +91,16 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/pengaturan', [Admin\PengaturanController::class, 'edit'])->name('pengaturan');
         Route::put('/pengaturan', [Admin\PengaturanController::class, 'update'])->name('pengaturan.update');
 
+        // Arsip surat disimpan juga ke Google Drive akun kantor
+        Route::controller(Admin\DriveController::class)->prefix('drive')->name('drive')->group(function () {
+            Route::get('/', 'index');
+            Route::get('/sambung', 'sambung')->name('.sambung');
+            Route::get('/kembali', 'kembali')->name('.kembali');   // alamat ini didaftarkan di Google Cloud
+            Route::post('/sinkron', 'sinkron')->name('.sinkron');
+            Route::post('/bagikan', 'bagikan')->name('.bagikan');
+            Route::delete('/', 'putus')->name('.putus');
+        });
+
         Route::get('/akun', [Admin\AkunController::class, 'index'])->name('akun.index');
         Route::post('/akun', [Admin\AkunController::class, 'store'])->name('akun.store');
         Route::delete('/akun/{user}', [Admin\AkunController::class, 'destroy'])->name('akun.destroy');

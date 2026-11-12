@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 /** Penjelajah folder arsip: Layanan > Tahun > Bulan > Permohonan > file. */
 class ArsipController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ArsipService $arsip)
     {
         // Tamu hanya folder arsip-contoh; petugas lain folder arsip
         $path = trim((string) $request->query('path', ArsipService::root()), '/');
@@ -22,18 +22,8 @@ class ArsipController extends Controller
             $disk->makeDirectory($path);
         }
 
-        $folder = collect($disk->directories($path))->sort()->map(fn ($d) => [
-            'path' => $d,
-            'nama' => basename($d),
-            'isi' => count($disk->allFiles($d)),
-        ])->values();
-
-        $file = collect($disk->files($path))->sort()->map(fn ($f) => [
-            'path' => $f,
-            'nama' => basename($f),
-            'ukuran' => $disk->size($f),
-            'waktu' => $disk->lastModified($f),
-        ])->values();
+        // Gabungan folder storage + daftar arsip di database (file yang tersimpan di Google Drive ikut tampil)
+        [$folder, $file] = $arsip->daftar($path);
 
         // Remah roti (breadcrumb)
         $remah = [];
@@ -46,12 +36,21 @@ class ArsipController extends Controller
         return view('admin.arsip.index', compact('path', 'folder', 'file', 'remah'));
     }
 
-    public function file(Request $request)
+    public function file(Request $request, ArsipService $arsip)
     {
-        $abs = ArsipService::pathAbsolut((string) $request->query('path'));
-        abort_unless($abs && is_file($abs), 404);
+        $path = trim(str_replace('\\', '/', (string) $request->query('path')), '/');
+        abort_unless(ArsipService::pathAbsolut($path), 404);
+        $isi = $arsip->isi($path);
+        abort_if($isi === null, 404, 'File tidak ditemukan. Kalau file ini disimpan di Google Drive, pastikan Drive masih tersambung.');
 
-        return $request->boolean('unduh') ? response()->download($abs) : response()->file($abs);
+        $nama = basename($path);
+        $mime = \App\Services\SuratService::MIME[strtolower(pathinfo($nama, PATHINFO_EXTENSION))] ?? 'application/octet-stream';
+        $disposisi = $request->boolean('unduh') ? 'attachment' : 'inline';
+
+        return response($isi, 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => $disposisi.'; filename="'.addslashes($nama).'"',
+        ]);
     }
 
     public function zip(Request $request, ArsipService $arsip)

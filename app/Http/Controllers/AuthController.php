@@ -89,7 +89,7 @@ class AuthController extends Controller
             ->where('contoh', true)->whereDate('created_at', '<', today())->get();
         foreach ($lama as $p) {
             if ($p->folder_path && str_starts_with($p->folder_path, ArsipService::ROOT_CONTOH.'/')) {
-                ArsipService::disk()->deleteDirectory($p->folder_path);
+                app(ArsipService::class)->hapusFolder($p->folder_path);
             }
             $p->delete();
         }

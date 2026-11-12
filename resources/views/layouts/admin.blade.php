@@ -60,6 +60,7 @@
             @if ($u->isAdmin())
                 <a class="nav-link @if (request()->routeIs('admin.pengaturan')) active @endif" href="{{ route('admin.pengaturan') }}"><i class="bi bi-gear"></i> Profil Kelurahan</a>
                 <a class="nav-link @if (request()->routeIs('admin.akun.index')) active @endif" href="{{ route('admin.akun.index') }}"><i class="bi bi-person-gear"></i> Akun Petugas</a>
+                <a class="nav-link @if (request()->routeIs('admin.drive*')) active @endif" href="{{ route('admin.drive') }}"><i class="bi bi-google"></i> Google Drive</a>
             @endif
         </nav>
         @unless ($u->isKasi() || $u->isTamu() || config('app.mode_masuk') === 'google')

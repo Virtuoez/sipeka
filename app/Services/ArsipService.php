@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Permohonan;
 use App\Models\Scopes\DataContoh;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use ZipArchive;
@@ -67,9 +69,200 @@ class ArsipService
     public function simpanSurat(Permohonan $p, string $isi, string $ext): string
     {
         $path = $p->folder_path.'/'.$this->namaFileSurat($p, $ext);
-        self::disk()->put($path, $isi);
+        $this->simpan($path, $isi);
 
         return $path;
+    }
+
+    /**
+     * Simpan file arsip: ke folder storage (cepat, untuk PC kantor) + daftar arsip_file (database)
+     * + salinan di Google Drive kantor bila tersambung. Gagal unggah tidak menggagalkan surat;
+     * file ditandai belum tersalin dan bisa diulang lewat tombol Sinkronkan.
+     */
+    public function simpan(string $path, string $isi): void
+    {
+        self::disk()->put($path, $isi);
+        $lama = DB::table('arsip_file')->where('path', $path)->first();
+        $data = ['ukuran' => strlen($isi), 'updated_at' => now()];
+        $lama
+            ? DB::table('arsip_file')->where('id', $lama->id)->update($data)
+            : DB::table('arsip_file')->insert($data + ['path' => $path, 'created_at' => now()]);
+
+        $this->keDrive($path, $isi, $lama->drive_id ?? null);
+    }
+
+    /** Arsip data contoh (tamu) tidak pernah dikirim ke Drive. */
+    private static function bolehKeDrive(string $path): bool
+    {
+        return str_starts_with($path, self::ROOT.'/') && GoogleDrive::terhubung();
+    }
+
+    private function keDrive(string $path, string $isi, ?string $idLama): bool
+    {
+        if (! self::bolehKeDrive($path)) {
+            return false;
+        }
+        try {
+            $id = app(GoogleDrive::class)->unggah($path, $isi, $idLama);
+            DB::table('arsip_file')->where('path', $path)->update(['drive_id' => $id]);
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
+    /** Isi file arsip: dari storage, atau dari Google Drive bila salinan lokal sudah hilang (Vercel). */
+    public function isi(string $path): ?string
+    {
+        $disk = self::disk();
+        if ($disk->exists($path)) {
+            return $disk->get($path);
+        }
+        $id = DB::table('arsip_file')->where('path', $path)->value('drive_id');
+        if (! $id || ! GoogleDrive::terhubung()) {
+            return null;
+        }
+        try {
+            $isi = app(GoogleDrive::class)->unduh($id);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+        if ($isi !== null) {
+            $disk->put($path, $isi);   // simpan sementara supaya pembukaan berikutnya cepat
+        }
+
+        return $isi;
+    }
+
+    public function ada(string $path): bool
+    {
+        return self::disk()->exists($path) || DB::table('arsip_file')->where('path', $path)->exists();
+    }
+
+    /**
+     * Isi satu folder arsip: gabungan folder storage dan daftar arsip_file.
+     *
+     * @return array{0: Collection, 1: Collection} [folder, file]
+     */
+    public function daftar(string $path): array
+    {
+        $disk = self::disk();
+        $awalan = $path.'/';
+        $semua = $this->semuaFile($path);
+
+        $folder = [];
+        $file = [];
+        foreach ($semua as $f => $info) {
+            $sisa = substr($f, strlen($awalan));
+            if (str_contains($sisa, '/')) {
+                $nama = strstr($sisa, '/', true);
+                $folder[$nama] = ($folder[$nama] ?? 0) + 1;
+            } else {
+                $file[] = ['path' => $f, 'nama' => $sisa] + $info;
+            }
+        }
+        foreach ($disk->directories($path) as $d) {
+            $folder[basename($d)] ??= 0;
+        }
+        ksort($folder);
+
+        return [
+            collect($folder)->map(fn ($isi, $nama) => ['path' => $awalan.$nama, 'nama' => $nama, 'isi' => $isi])->values(),
+            collect($file)->sortBy('nama')->values(),
+        ];
+    }
+
+    /** Baris tabel di bawah folder. LIKE hanya penyaring kasar ("_" = wildcard), dipastikan lagi dengan str_starts_with. */
+    private static function barisDiBawah(string $tabel, string $path): Collection
+    {
+        $awalan = trim($path, '/').'/';
+
+        return DB::table($tabel)->where('path', 'like', $awalan.'%')->get()
+            ->filter(fn ($r) => str_starts_with($r->path, $awalan))->values();
+    }
+
+    /**
+     * Semua file (rekursif) di bawah folder, gabungan storage + daftar arsip_file.
+     *
+     * @return Collection<string, array{ukuran: int, waktu: int, drive: bool}>
+     */
+    private function semuaFile(string $path): Collection
+    {
+        $disk = self::disk();
+        $semua = collect($disk->exists($path) ? $disk->allFiles($path) : [])->mapWithKeys(fn ($f) => [$f => [
+            'ukuran' => $disk->size($f), 'waktu' => $disk->lastModified($f), 'drive' => false,
+        ]]);
+        foreach (self::barisDiBawah('arsip_file', $path) as $r) {
+            $lokal = $semua->get($r->path);
+            $semua->put($r->path, [
+                'ukuran' => $lokal['ukuran'] ?? (int) $r->ukuran,
+                'waktu' => $lokal['waktu'] ?? strtotime($r->updated_at),
+                'drive' => (bool) $r->drive_id,
+            ]);
+        }
+
+        return $semua;
+    }
+
+    /** Hapus folder arsip permohonan: storage, daftar, dan salinan Drive (ke Sampah Drive). */
+    public function hapusFolder(string $path): void
+    {
+        $path = trim($path, '/');
+        self::disk()->deleteDirectory($path);
+        DB::table('arsip_file')->whereIn('id', self::barisDiBawah('arsip_file', $path)->pluck('id'))->delete();
+
+        $folder = DB::table('drive_folder')->where('path', $path)->value('drive_id');
+        if ($folder && GoogleDrive::terhubung()) {
+            try {
+                app(GoogleDrive::class)->buang($folder);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+        DB::table('drive_folder')->where('path', $path)->orWhereIn('id', self::barisDiBawah('drive_folder', $path)->pluck('id'))->delete();
+    }
+
+    /**
+     * Salin ke Drive semua file arsip yang belum tersalin (mis. surat lama sebelum Drive disambungkan).
+     *
+     * @return array{0: int, 1: int, 2: int, 3: int} [berhasil, gagal, hilang, sisa]
+     */
+    public function sinkronkan(int $batas = 40): array
+    {
+        $disk = self::disk();
+        // File di storage yang belum terdaftar → daftarkan dulu
+        if ($disk->exists(self::ROOT)) {
+            $terdaftar = DB::table('arsip_file')->pluck('path')->flip();
+            foreach ($disk->allFiles(self::ROOT) as $f) {
+                if (! $terdaftar->has($f)) {
+                    DB::table('arsip_file')->insert(['path' => $f, 'ukuran' => $disk->size($f), 'created_at' => now(), 'updated_at' => now()]);
+                }
+            }
+        }
+
+        $ok = $gagal = $hilang = 0;
+        $belum = fn () => DB::table('arsip_file')->whereNull('drive_id')->where('path', 'like', self::ROOT.'/%');
+        foreach ($belum()->orderBy('id')->limit($batas)->get() as $r) {
+            if (! $disk->exists($r->path)) {
+                // File sudah hilang (mis. folder sementara Vercel terhapus sebelum Drive disambungkan): keluarkan dari daftar
+                DB::table('arsip_file')->where('id', $r->id)->delete();
+                $hilang++;
+
+                continue;
+            }
+            if (! $this->keDrive($r->path, $disk->get($r->path), null)) {
+                $gagal++;
+                break;   // Drive bermasalah: hentikan dulu, coba lagi nanti
+            }
+            $ok++;
+        }
+
+        return [$ok, $gagal, $hilang, $belum()->count()];
     }
 
     /**
@@ -89,8 +282,8 @@ class ArsipService
     /** Buat ZIP dari satu folder arsip (rekursif). Mengembalikan path file zip sementara. */
     public function zipFolder(string $relatif): ?string
     {
-        $abs = self::pathAbsolut($relatif);
-        if (! $abs || ! is_dir($abs)) {
+        $relatif = trim(str_replace('\\', '/', $relatif), '/');
+        if (! self::pathAbsolut($relatif)) {
             return null;
         }
 
@@ -98,11 +291,11 @@ class ArsipService
         $zip = new ZipArchive;
         $zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
-        $iter = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($abs, \FilesystemIterator::SKIP_DOTS));
-        foreach ($iter as $file) {
-            if ($file->isFile()) {
-                $dalamZip = ltrim(str_replace('\\', '/', substr($file->getPathname(), strlen($abs))), '/');
-                $zip->addFile($file->getPathname(), $dalamZip);
+        // File yang hanya ada di Google Drive ikut diambil
+        foreach ($this->semuaFile($relatif)->keys() as $f) {
+            $isi = $this->isi($f);
+            if ($isi !== null) {
+                $zip->addFromString(substr($f, strlen($relatif) + 1), $isi);
             }
         }
         $ada = $zip->numFiles > 0;
