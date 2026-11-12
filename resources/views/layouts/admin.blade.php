@@ -17,9 +17,7 @@
 <body>
     <aside class="sidebar d-flex flex-column p-3" id="sidebar">
         <a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none mb-3 px-1">
-            <span class="brand-logo bg-white text-success">
-                <img src="{{ $s['logo'] ? asset('storage/'.$s['logo']) : asset('icons/logo-banjar.png') }}" alt="Logo Kabupaten Banjar">
-            </span>
+            <img src="{{ $s['logo'] ? asset('storage/'.$s['logo']) : asset('icons/logo-banjar.png') }}" alt="Logo Kabupaten Banjar" class="logo-sidebar">
             <span class="text-white lh-sm"><strong>SIPEKA</strong><br><small class="text-white-50">Kel. {{ $s['nama_kelurahan'] }}</small></span>
         </a>
         <nav class="nav flex-column flex-grow-1">
