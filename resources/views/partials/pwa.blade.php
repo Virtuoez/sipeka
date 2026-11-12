@@ -1,6 +1,6 @@
 {{-- Supaya website bisa dipasang sebagai aplikasi di PC & tablet (PWA) --}}
 <link rel="manifest" href="{{ asset('manifest.json') }}">
-<meta name="theme-color" content="#0a4d39">
+<meta name="theme-color" content="00a4d39">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SIPEKA">

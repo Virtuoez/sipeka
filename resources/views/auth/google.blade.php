@@ -7,7 +7,7 @@
     <title>SIPEKA - Kelurahan {{ $s['nama_kelurahan'] }}</title>
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=5">
     @include('partials.pwa')
     <style>
         .tombol-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px 16px;

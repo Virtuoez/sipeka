@@ -1,7 +1,7 @@
-﻿// Service worker SIPEKA: membuat website bisa dipasang sebagai aplikasi.
+// Service worker SIPEKA: membuat website bisa dipasang sebagai aplikasi.
 // Data (permohonan, NIK, dll) TIDAK disimpan di perangkat: selalu diambil langsung dari PC kelurahan.
 // Yang disimpan hanya halaman "tidak tersambung" + ikon, untuk ditampilkan saat PC kelurahan mati / WiFi putus.
-const CACHE = 'sipeka-v3';
+const CACHE = 'sipeka-v4';
 const CADANGAN = ['/offline.html', '/icons/ikon-192.png'];
 
 self.addEventListener('install', (e) => {

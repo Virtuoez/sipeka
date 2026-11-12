@@ -7,7 +7,7 @@
     <title>Masuk Admin - Kelurahan {{ $s['nama_kelurahan'] }}</title>
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=5">
     @include('partials.pwa')
 </head>
 <body class="hero d-flex align-items-center min-vh-100 py-4">

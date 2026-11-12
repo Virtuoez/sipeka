@@ -7,7 +7,7 @@
     <title>SIPEKA - Kelurahan {{ $s['nama_kelurahan'] }}</title>
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=5">
     @include('partials.pwa')
     <style>
         .tombol-peran { border: 0; border-radius: 18px; padding: 28px 16px; width: 100%; color: #fff; transition: transform .1s, box-shadow .1s; }
@@ -15,8 +15,8 @@
         .tombol-peran:hover { box-shadow: 0 10px 26px rgba(0, 0, 0, .25); }
         .tombol-peran i { font-size: 3rem; display: block; margin-bottom: 6px; }
         .tombol-peran .judul { font-size: 1.5rem; font-weight: 700; }
-        .peran-pelayanan { background: linear-gradient(135deg, #1b8a66, #0f6b4f); }
-        .peran-kasi { background: linear-gradient(135deg, #c9a227, #a8841a); }
+        .peran-pelayanan { background: linear-gradient(135deg, #2f7fd0, #1f5fae); }
+        .peran-kasi { background: linear-gradient(135deg, #e0a800, #b88900); }
         .tombol-pc { border-radius: 14px; padding: 18px 12px; font-size: 1.15rem; font-weight: 600; }
     </style>
 </head>
