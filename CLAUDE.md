@@ -105,14 +105,16 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - Isian tipe `pilihan`: `Label | pilihan: A; B; C` → select di formulir; nilai = teks pilihan, `{key}_kode` = nomor urut (kode formulir pindah).
 - Contoh tampilan per template: `resources/surat/contoh/{slug}.pdf` (data fiktif, dibuat dari Word/Excel), tampil di halaman Template.
 - Logo kop bawaan `resources/img/logo-kabupaten-banjar.png` (dari surat kantor) bila Profil Kelurahan belum punya logo.
-- **Google Drive arsip** (menu admin "Google Drive", `Admin\DriveController`, `App\Services\GoogleDrive`, REST API langsung tanpa
-  google/apiclient). Satu akun Google KANTOR (bukan akun pribadi Kasi), izin `drive.file` saja; refresh token terenkripsi di
-  pengaturan `drive_token` (+ `drive_email`, `drive_root`). Redirect `/admin/drive/kembali` harus terdaftar di Google Cloud, Drive API
-  aktif, dan layar persetujuan OAuth berstatus "In production" (status Testing → token mati 7 hari).
+- **Google Drive arsip** (menu "Google Drive" untuk Kasi & admin, `Admin\DriveController`, `App\Services\GoogleDrive`, REST API langsung
+  tanpa google/apiclient). **Per Kasi** (keputusan pemilik): tiap bidang menyambungkan akun Google Kasi-nya sendiri,
+  `GoogleDrive::untuk($bidang)` / `untukPath($path)` (segmen ke-2 path arsip = label bidang). Kasi hanya bidangnya, admin ketiganya.
+  Izin `drive.file` saja; refresh token terenkripsi di pengaturan `drive_token_{bidang}` (+ `drive_email_{bidang}`, `drive_root_{bidang}`
+  = folder "SIPEKA - Arsip Kasi X Kel. Y" yang mewakili `arsip/Kasi X`). Redirect `/admin/drive/kembali` harus terdaftar di Google Cloud,
+  Drive API aktif, dan layar persetujuan OAuth berstatus "In production" (status Testing → token mati 7 hari).
   `ArsipService::simpan()` = storage + tabel `arsip_file` (path, ukuran, drive_id) + unggah Drive (gagal → drive_id null, ulang lewat
   Sinkronkan). Daftar arsip = storage ∪ `arsip_file`; `isi()` mengambil dari Drive bila file lokal hilang (/tmp Vercel).
-  `drive_folder` = cache id folder Drive per path. Arsip contoh (tamu) tidak pernah ke Drive. Hapus permohonan → folder Drive ke Sampah.
-  Tombol "Bagikan folder ke Kasi" memberi akses lihat ke email Google akun Kasi per bidang (email `.local` dilewati).
+  `drive_folder` = cache id folder Drive per path. Arsip contoh (tamu) & bidang yang belum tersambung tidak ke Drive.
+  Hapus permohonan → folder Drive ke Sampah.
 - `.neon`, `neon.ts`, perubahan `package.json`/`package-lock.json` dari `neon init` sengaja TIDAK di-commit (alat lokal).
 
 ## Data sensitif

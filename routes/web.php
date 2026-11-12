@@ -65,6 +65,15 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/arsip/zip', [Admin\ArsipController::class, 'zip'])->name('arsip.zip');
     });
 
+    // Arsip surat disalin ke Google Drive masing-masing Kasi (Kasi: bidangnya sendiri, Admin: semua)
+    Route::controller(Admin\DriveController::class)->middleware(['peran:admin,kasi', 'bukan-tamu'])->prefix('drive')->name('drive')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/kembali', 'kembali')->name('.kembali');   // alamat ini didaftarkan di Google Cloud
+        Route::get('/{bidang}/sambung', 'sambung')->name('.sambung');
+        Route::post('/{bidang}/sinkron', 'sinkron')->name('.sinkron');
+        Route::delete('/{bidang}', 'putus')->name('.putus');
+    });
+
     // Admin & pelayanan (bukan tamu): ubah data penduduk, layanan & template surat
     Route::middleware(['peran:admin,pelayanan', 'bukan-tamu'])->group(function () {
         Route::get('/penduduk/template-csv', [Admin\PendudukController::class, 'templateCsv'])->name('penduduk.template-csv');
@@ -90,16 +99,6 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/pengaturan', [Admin\PengaturanController::class, 'edit'])->name('pengaturan');
         Route::put('/pengaturan', [Admin\PengaturanController::class, 'update'])->name('pengaturan.update');
-
-        // Arsip surat disimpan juga ke Google Drive akun kantor
-        Route::controller(Admin\DriveController::class)->prefix('drive')->name('drive')->group(function () {
-            Route::get('/', 'index');
-            Route::get('/sambung', 'sambung')->name('.sambung');
-            Route::get('/kembali', 'kembali')->name('.kembali');   // alamat ini didaftarkan di Google Cloud
-            Route::post('/sinkron', 'sinkron')->name('.sinkron');
-            Route::post('/bagikan', 'bagikan')->name('.bagikan');
-            Route::delete('/', 'putus')->name('.putus');
-        });
 
         Route::get('/akun', [Admin\AkunController::class, 'index'])->name('akun.index');
         Route::post('/akun', [Admin\AkunController::class, 'store'])->name('akun.store');

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Layanan;
-use App\Models\User;
 use App\Services\ArsipService;
 use App\Services\GoogleDrive;
 use Illuminate\Http\Request;
@@ -12,52 +11,78 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
-/** Menu admin "Google Drive": sambungkan akun Google kantor sebagai tempat simpan arsip surat. */
+/**
+ * Menu "Google Drive": tiap Kasi menyambungkan akun Google-nya sendiri, dan arsip surat bidangnya
+ * otomatis tersimpan di Drive Kasi itu. Kasi hanya mengatur bidangnya sendiri; Admin bisa melihat
+ * & mengatur ketiganya.
+ */
 class DriveController extends Controller
 {
-    public function index()
+    /** Bidang yang boleh diatur akun ini. */
+    private function bidangBoleh(Request $request): array
     {
-        $folderKasi = [];
-        if (GoogleDrive::terhubung()) {
-            foreach (Layanan::BIDANG as $k => $label) {
-                $folderKasi[$k] = [
-                    'label' => $label,
-                    'id' => DB::table('drive_folder')->where('path', ArsipService::ROOT.'/'.$label)->value('drive_id'),
-                    'email' => $this->emailKasi($k),
-                ];
-            }
+        $u = $request->user();
+        if ($u->isAdmin()) {
+            return array_keys(Layanan::BIDANG);
+        }
+
+        return $u->bidang && isset(Layanan::BIDANG[$u->bidang]) ? [$u->bidang] : [];
+    }
+
+    private function drive(Request $request, string $bidang): GoogleDrive
+    {
+        abort_unless(in_array($bidang, $this->bidangBoleh($request), true), 403, 'Ini bukan Drive bidang Anda.');
+
+        return GoogleDrive::untuk($bidang);
+    }
+
+    public function index(Request $request)
+    {
+        $daftar = [];
+        foreach ($this->bidangBoleh($request) as $b) {
+            $d = GoogleDrive::untuk($b);
+            $baris = DB::table('arsip_file')->where('path', 'like', $d->pathAkar().'/%')->get()
+                ->filter(fn ($r) => str_starts_with($r->path, $d->pathAkar().'/'));
+            $daftar[$b] = [
+                'label' => $d->label(),
+                'terhubung' => $d->terhubung(),
+                'email' => $d->email(),
+                'akar' => $d->idAkar(),
+                'jumlah' => $baris->count(),
+                'tersalin' => $baris->whereNotNull('drive_id')->count(),
+            ];
         }
 
         return view('admin.drive', [
             'siap' => GoogleDrive::siap(),
-            'terhubung' => GoogleDrive::terhubung(),
-            'email' => GoogleDrive::email(),
-            'root' => \App\Models\Pengaturan::ambil('drive_root'),
+            'daftar' => $daftar,
             'redirect' => GoogleDrive::urlRedirect(),
-            'jumlah' => DB::table('arsip_file')->where('path', 'like', ArsipService::ROOT.'/%')->count(),
-            'tersalin' => DB::table('arsip_file')->where('path', 'like', ArsipService::ROOT.'/%')->whereNotNull('drive_id')->count(),
-            'folderKasi' => $folderKasi,
         ]);
     }
 
-    public function sambung(Request $request)
+    public function sambung(Request $request, string $bidang)
     {
+        $this->drive($request, $bidang);
         abort_unless(GoogleDrive::siap(), 404);
         $state = Str::random(40);
-        $request->session()->put('drive_state', $state);
+        $request->session()->put('drive_state', ['kode' => $state, 'bidang' => $bidang]);
 
-        return redirect()->away(GoogleDrive::urlIzin($state));
+        // Kasi: sarankan akun Google yang dipakai masuk ke website
+        $email = $request->user()->isKasi() && ! str_ends_with((string) $request->user()->email, '.local') ? $request->user()->email : null;
+
+        return redirect()->away(GoogleDrive::urlIzin($state, $email));
     }
 
-    public function kembali(Request $request, GoogleDrive $drive)
+    public function kembali(Request $request)
     {
-        $state = $request->session()->pull('drive_state');
-        if (! $state || ! hash_equals($state, (string) $request->query('state'))) {
+        $simpan = $request->session()->pull('drive_state');
+        if (! is_array($simpan) || ! hash_equals($simpan['kode'], (string) $request->query('state'))) {
             return redirect()->route('admin.drive')->withErrors(['drive' => 'Sesi penyambungan kedaluwarsa. Klik Sambungkan lagi.']);
         }
         if ($request->filled('error') || ! $request->filled('code')) {
             return redirect()->route('admin.drive')->withErrors(['drive' => 'Penyambungan dibatalkan di halaman Google.']);
         }
+        $drive = $this->drive($request, $simpan['bidang']);
 
         try {
             $drive->sambungkan((string) $request->query('code'));
@@ -67,15 +92,16 @@ class DriveController extends Controller
             return redirect()->route('admin.drive')->withErrors(['drive' => $e->getMessage()]);
         }
 
-        return redirect()->route('admin.drive')->with('ok', 'Google Drive tersambung. Surat yang selesai mulai sekarang otomatis tersimpan di Drive.');
+        return redirect()->route('admin.drive')->with('ok', "Google Drive {$drive->label()} tersambung ke {$drive->email()}. Surat bidang ini yang selesai otomatis tersimpan di sana.");
     }
 
-    public function sinkron(ArsipService $arsip)
+    public function sinkron(Request $request, string $bidang, ArsipService $arsip)
     {
-        abort_unless(GoogleDrive::terhubung(), 404);
-        [$ok, $gagal, $hilang, $sisa] = $arsip->sinkronkan();
+        $drive = $this->drive($request, $bidang);
+        abort_unless($drive->terhubung(), 404);
+        [$ok, $gagal, $hilang, $sisa] = $arsip->sinkronkan($drive);
 
-        $pesan = "$ok file disalin ke Google Drive.";
+        $pesan = "$ok file disalin ke Google Drive {$drive->label()}.";
         if ($hilang) {
             $pesan .= " $hilang file lama sudah tidak ada di server, jadi dilewati.";
         }
@@ -86,44 +112,11 @@ class DriveController extends Controller
         return back()->with('ok', $pesan.($sisa ? " Masih $sisa file lagi, klik Salin lagi." : ''));
     }
 
-    /** Bagikan folder "Kasi …" di Drive ke akun Google Kasi bidang itu (akses lihat & unduh). */
-    public function bagikan(GoogleDrive $drive)
+    public function putus(Request $request, string $bidang)
     {
-        abort_unless(GoogleDrive::terhubung(), 404);
-        $hasil = [];
-        try {
-            foreach (Layanan::BIDANG as $k => $label) {
-                $emails = $this->emailKasi($k);
-                if (! $emails) {
-                    continue;
-                }
-                $folder = $drive->folder(ArsipService::ROOT.'/'.$label);
-                foreach ($emails as $e) {
-                    $hasil[] = $drive->bagikan($folder, $e) ? "$label → $e" : "$label → $e (gagal)";
-                }
-            }
-        } catch (Throwable $e) {
-            report($e);
-
-            return back()->withErrors(['drive' => $e->getMessage()]);
-        }
-
-        return $hasil
-            ? back()->with('ok', 'Folder dibagikan: '.implode(', ', $hasil).'. Kasi akan menerima email dari Google.')
-            : back()->withErrors(['drive' => 'Belum ada akun Kasi dengan email Google. Isi email Google Kasi di menu Akun Petugas dulu.']);
-    }
-
-    public function putus(GoogleDrive $drive)
-    {
+        $drive = $this->drive($request, $bidang);
         $drive->putuskan();
 
-        return back()->with('ok', 'Google Drive diputus. File yang sudah ada di Drive TIDAK dihapus.');
-    }
-
-    /** Email Google asli akun Kasi bidang ini (email buatan otomatis @sekumpul.local dilewati). */
-    private function emailKasi(string $bidang): array
-    {
-        return User::where('role', 'kasi')->where('bidang', $bidang)->pluck('email')
-            ->filter(fn ($e) => $e && ! str_ends_with($e, '.local'))->values()->all();
+        return back()->with('ok', "Google Drive {$drive->label()} diputus. File yang sudah ada di Drive TIDAK dihapus.");
     }
 }

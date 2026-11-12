@@ -49,6 +49,9 @@
             @if ($u->punyaPeran('admin', 'pelayanan', 'kasi'))
                 <a class="nav-link @if (request()->routeIs('admin.arsip.*')) active @endif" href="{{ route('admin.arsip.index') }}"><i class="bi bi-folder2-open"></i> Arsip Berkas</a>
             @endif
+            @if ($u->punyaPeran('admin', 'kasi') && ! $u->isTamu())
+                <a class="nav-link @if (request()->routeIs('admin.drive*')) active @endif" href="{{ route('admin.drive') }}"><i class="bi bi-google"></i> Google Drive</a>
+            @endif
 
             <div class="judul-menu">Pendataan</div>
             <a class="nav-link @if (request()->routeIs('admin.penduduk.*')) active @endif" href="{{ route('admin.penduduk.index') }}"><i class="bi bi-people"></i> Data Penduduk</a>
@@ -59,9 +62,7 @@
             @endif
             @if ($u->isAdmin())
                 <a class="nav-link @if (request()->routeIs('admin.pengaturan')) active @endif" href="{{ route('admin.pengaturan') }}"><i class="bi bi-gear"></i> Profil Kelurahan</a>
-                <a class="nav-link @if (request()->routeIs('admin.akun.index')) active @endif" href="{{ route('admin.akun.index') }}"><i class="bi bi-person-gear"></i> Akun Petugas</a>
-                <a class="nav-link @if (request()->routeIs('admin.drive*')) active @endif" href="{{ route('admin.drive') }}"><i class="bi bi-google"></i> Google Drive</a>
-            @endif
+                <a class="nav-link @if (request()->routeIs('admin.akun.index')) active @endif" href="{{ route('admin.akun.index') }}"><i class="bi bi-person-gear"></i> Akun Petugas</a>            @endif
         </nav>
         @unless ($u->isKasi() || $u->isTamu() || config('app.mode_masuk') === 'google')
             @php($alamatLan = \App\Support\Jaringan::alamat())

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Pengaturan;
 use App\Models\User;
 use App\Services\ArsipService;
+use App\Services\GoogleDrive;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Crypt;
@@ -59,9 +60,13 @@ class GoogleDriveTest extends TestCase
         });
     }
 
-    private function sambungkan(): void
+    private function sambungkan(string $bidang = 'pemerintahan'): void
     {
-        Pengaturan::simpan(['drive_token' => Crypt::encryptString('segar-uji'), 'drive_email' => 'kantor@example.com', 'drive_root' => 'akar']);
+        Pengaturan::simpan([
+            "drive_token_$bidang" => Crypt::encryptString('segar-uji'),
+            "drive_email_$bidang" => "kasi.$bidang@example.com",
+            "drive_root_$bidang" => "akar-$bidang",
+        ]);
     }
 
     public function test_tanpa_drive_arsip_tetap_tersimpan_dan_terdaftar(): void
@@ -88,7 +93,7 @@ class GoogleDriveTest extends TestCase
         $this->assertNotNull($id);
         // Folder dibuat bertingkat sesuai arsip
         $this->assertTrue(DB::table('drive_folder')->where('path', $folder)->exists());
-        $this->assertTrue(DB::table('drive_folder')->where('path', 'arsip/Kasi Pemerintahan')->exists());
+        $this->assertTrue(DB::table('drive_folder')->where('path', 'arsip/Kasi Pemerintahan/01 - Belum Menikah')->exists());
 
         // Seperti /tmp Vercel yang terhapus: file server hilang, daftar & isi tetap dari Drive
         Storage::disk('local')->deleteDirectory('arsip');
@@ -101,60 +106,69 @@ class GoogleDriveTest extends TestCase
         $this->actingAs($admin)->get('/admin/arsip/zip?path='.urlencode($folder))->assertOk();
     }
 
-    public function test_arsip_data_contoh_tidak_dikirim_ke_drive(): void
+    public function test_arsip_data_contoh_dan_bidang_belum_tersambung_tidak_dikirim(): void
     {
-        $this->sambungkan();
-        app(ArsipService::class)->simpan('arsip-contoh/Kasi Kesos/x/SURAT.docx', 'contoh');
+        $this->sambungkan('pemerintahan');
+        app(ArsipService::class)->simpan('arsip-contoh/Kasi Pemerintahan/x/SURAT.docx', 'contoh');
+        // Drive Kasi Pemerintahan tersambung, tapi surat Kasi Kesos tidak boleh masuk ke sana
+        app(ArsipService::class)->simpan('arsip/Kasi Kesos/09 - SKTM/x/SURAT.xlsx', 'kesos');
         Http::assertNothingSent();
+        $this->assertNull(DB::table('arsip_file')->where('path', 'arsip/Kasi Kesos/09 - SKTM/x/SURAT.xlsx')->value('drive_id'));
+    }
+
+    public function test_tiap_kasi_punya_drive_sendiri(): void
+    {
+        $this->sambungkan('pemerintahan');
+        $this->sambungkan('kesos');
+        app(ArsipService::class)->simpan('arsip/Kasi Kesos/09 - SKTM/2026/x/SURAT.xlsx', 'kesos');
+        app(ArsipService::class)->simpan('arsip/Kasi Pemerintahan/01 - Belum Menikah/2026/y/SURAT.docx', 'pem');
+
+        // Folder bidang dibuat di bawah akar Drive masing-masing Kasi
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'drive/v3/files?fields=id') && ($r['name'] ?? '') === '09 - SKTM' && $r['parents'] === ['akar-kesos']);
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), 'drive/v3/files?fields=id') && ($r['name'] ?? '') === '01 - Belum Menikah' && $r['parents'] === ['akar-pemerintahan']);
     }
 
     public function test_sinkronkan_menyalin_arsip_lama(): void
     {
         Storage::disk('local')->put('arsip/Kasi Kesos/lama/SURAT_LAMA.pdf', 'pdf-lama');
-        $this->sambungkan();
+        $this->sambungkan('kesos');
 
-        $admin = User::where('role', 'admin')->firstOrFail();
-        $this->actingAs($admin)->post('/admin/drive/sinkron')->assertRedirect()->assertSessionHas('ok');
+        $kasi = User::where('name', 'Kasi Kesos')->firstOrFail();
+        $this->actingAs($kasi)->post('/admin/drive/kesos/sinkron')->assertRedirect()->assertSessionHas('ok');
         $this->assertNotNull(DB::table('arsip_file')->where('path', 'arsip/Kasi Kesos/lama/SURAT_LAMA.pdf')->value('drive_id'));
     }
 
-    public function test_menyambungkan_drive_lewat_google(): void
+    public function test_kasi_menyambungkan_drive_sendiri_lewat_google(): void
     {
-        $admin = User::where('role', 'admin')->firstOrFail();
-        $this->actingAs($admin)->get('/admin/drive')->assertOk()->assertSee('Sambungkan Google Drive kantor');
+        $kasi = User::where('name', 'Kasi Kesos')->firstOrFail();
+        $this->actingAs($kasi)->get('/admin/drive')->assertOk()->assertSee('Sambungkan Google Drive Kasi Kesos')->assertDontSee('Kasi Pemerintahan');
+        // Kasi tidak bisa menyambungkan Drive bidang lain
+        $this->actingAs($kasi)->get('/admin/drive/pemerintahan/sambung')->assertForbidden();
 
-        $r = $this->actingAs($admin)->get('/admin/drive/sambung')->assertRedirect();
+        $r = $this->actingAs($kasi)->get('/admin/drive/kesos/sambung')->assertRedirect();
         $this->assertStringContainsString('drive.file', urldecode($r->headers->get('Location')));
         $state = session('drive_state');
 
         // State salah ditolak
-        $this->actingAs($admin)->withSession(['drive_state' => $state])->get('/admin/drive/kembali?code=x&state=salah')
+        $this->actingAs($kasi)->withSession(['drive_state' => $state])->get('/admin/drive/kembali?code=x&state=salah')
             ->assertRedirect('/admin/drive')->assertSessionHasErrors('drive');
-        $this->assertFalse(\App\Services\GoogleDrive::terhubung());
+        $this->assertFalse(GoogleDrive::untuk('kesos')->terhubung());
 
-        $this->actingAs($admin)->withSession(['drive_state' => $state])->get('/admin/drive/kembali?code=kode-uji&state='.$state)
+        $this->actingAs($kasi)->withSession(['drive_state' => $state])->get('/admin/drive/kembali?code=kode-uji&state='.$state['kode'])
             ->assertRedirect('/admin/drive')->assertSessionHas('ok');
-        $this->assertTrue(\App\Services\GoogleDrive::terhubung());
-        $this->assertSame('kantor@example.com', \App\Services\GoogleDrive::email());
+        $this->assertTrue(GoogleDrive::untuk('kesos')->terhubung());
+        $this->assertFalse(GoogleDrive::untuk('pemerintahan')->terhubung());
+        $this->assertSame('kantor@example.com', GoogleDrive::untuk('kesos')->email());
         // Token tersimpan terenkripsi
-        $this->assertNotSame('segar-uji', Pengaturan::ambil('drive_token'));
-        $this->actingAs($admin)->get('/admin/drive')->assertOk()->assertSee('kantor@example.com');
+        $this->assertNotSame('segar-uji', Pengaturan::ambil('drive_token_kesos'));
 
-        // Kasi tidak boleh membuka menu ini
-        $kasi = User::where('role', 'kasi')->firstOrFail();
-        $this->actingAs($kasi)->get('/admin/drive')->assertForbidden();
-
-        $this->actingAs($admin)->delete('/admin/drive')->assertRedirect();
-        $this->assertFalse(\App\Services\GoogleDrive::terhubung());
-    }
-
-    public function test_bagikan_folder_ke_email_google_kasi(): void
-    {
-        $this->sambungkan();
-        User::where('name', 'Kasi Kesos')->update(['email' => 'kasi.kesos@example.com']);
+        // Admin melihat ketiga bidang
         $admin = User::where('role', 'admin')->firstOrFail();
+        $this->actingAs($admin)->get('/admin/drive')->assertOk()->assertSee('kantor@example.com')->assertSee('Sambungkan Google Drive Kasi PM');
+        // Pelayanan tidak punya menu ini
+        $this->actingAs(User::where('role', 'pelayanan')->firstOrFail())->get('/admin/drive')->assertForbidden();
 
-        $this->actingAs($admin)->post('/admin/drive/bagikan')->assertRedirect()->assertSessionHas('ok');
-        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), '/permissions') && $r['emailAddress'] === 'kasi.kesos@example.com');
+        $this->actingAs($kasi)->delete('/admin/drive/kesos')->assertRedirect();
+        $this->assertFalse(GoogleDrive::untuk('kesos')->terhubung());
     }
 }

@@ -91,19 +91,15 @@ class ArsipService
         $this->keDrive($path, $isi, $lama->drive_id ?? null);
     }
 
-    /** Arsip data contoh (tamu) tidak pernah dikirim ke Drive. */
-    private static function bolehKeDrive(string $path): bool
-    {
-        return str_starts_with($path, self::ROOT.'/') && GoogleDrive::terhubung();
-    }
-
+    /** Ke Drive Kasi bidang pemilik arsip (arsip contoh/tamu dan bidang yang belum tersambung dilewati). */
     private function keDrive(string $path, string $isi, ?string $idLama): bool
     {
-        if (! self::bolehKeDrive($path)) {
+        $drive = GoogleDrive::untukPath($path);
+        if (! $drive) {
             return false;
         }
         try {
-            $id = app(GoogleDrive::class)->unggah($path, $isi, $idLama);
+            $id = $drive->unggah($path, $isi, $idLama);
             DB::table('arsip_file')->where('path', $path)->update(['drive_id' => $id]);
 
             return true;
@@ -122,11 +118,12 @@ class ArsipService
             return $disk->get($path);
         }
         $id = DB::table('arsip_file')->where('path', $path)->value('drive_id');
-        if (! $id || ! GoogleDrive::terhubung()) {
+        $drive = GoogleDrive::untukPath($path);
+        if (! $id || ! $drive) {
             return null;
         }
         try {
-            $isi = app(GoogleDrive::class)->unduh($id);
+            $isi = $drive->unduh($id);
         } catch (\Throwable $e) {
             report($e);
 
@@ -217,9 +214,10 @@ class ArsipService
         DB::table('arsip_file')->whereIn('id', self::barisDiBawah('arsip_file', $path)->pluck('id'))->delete();
 
         $folder = DB::table('drive_folder')->where('path', $path)->value('drive_id');
-        if ($folder && GoogleDrive::terhubung()) {
+        $drive = GoogleDrive::untukPath($path);
+        if ($folder && $drive) {
             try {
-                app(GoogleDrive::class)->buang($folder);
+                $drive->buang($folder);
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -228,17 +226,18 @@ class ArsipService
     }
 
     /**
-     * Salin ke Drive semua file arsip yang belum tersalin (mis. surat lama sebelum Drive disambungkan).
+     * Salin ke Drive Kasi semua arsip bidangnya yang belum tersalin (mis. surat lama sebelum Drive disambungkan).
      *
      * @return array{0: int, 1: int, 2: int, 3: int} [berhasil, gagal, hilang, sisa]
      */
-    public function sinkronkan(int $batas = 40): array
+    public function sinkronkan(GoogleDrive $drive, int $batas = 40): array
     {
         $disk = self::disk();
+        $akar = $drive->pathAkar();
         // File di storage yang belum terdaftar → daftarkan dulu
-        if ($disk->exists(self::ROOT)) {
+        if ($disk->exists($akar)) {
             $terdaftar = DB::table('arsip_file')->pluck('path')->flip();
-            foreach ($disk->allFiles(self::ROOT) as $f) {
+            foreach ($disk->allFiles($akar) as $f) {
                 if (! $terdaftar->has($f)) {
                     DB::table('arsip_file')->insert(['path' => $f, 'ukuran' => $disk->size($f), 'created_at' => now(), 'updated_at' => now()]);
                 }
@@ -246,8 +245,8 @@ class ArsipService
         }
 
         $ok = $gagal = $hilang = 0;
-        $belum = fn () => DB::table('arsip_file')->whereNull('drive_id')->where('path', 'like', self::ROOT.'/%');
-        foreach ($belum()->orderBy('id')->limit($batas)->get() as $r) {
+        $belum = fn () => self::barisDiBawah('arsip_file', $akar)->whereNull('drive_id');
+        foreach ($belum()->sortBy('id')->take($batas) as $r) {
             if (! $disk->exists($r->path)) {
                 // File sudah hilang (mis. folder sementara Vercel terhapus sebelum Drive disambungkan): keluarkan dari daftar
                 DB::table('arsip_file')->where('id', $r->id)->delete();
