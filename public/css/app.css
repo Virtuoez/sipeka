@@ -57,7 +57,10 @@ body { background: #f4f7fb; font-family: "Segoe UI", system-ui, -apple-system, R
 .topbar-admin { background: #fff; border-bottom: 1px solid #e3e9f2; }
 @media (max-width: 991.98px) {
     .sidebar { transform: translateX(-100%); }
-    .sidebar.tampil { transform: none; }
+    .sidebar.tampil { transform: none; box-shadow: 4px 0 24px rgba(0, 0, 0, .25); }
+    .sidebar { overflow-y: auto; max-height: 100vh; }
+    .sidebar-latar { position: fixed; inset: 0; background: rgba(10, 20, 40, .45); z-index: 1029; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .sidebar-latar.tampil { opacity: 1; pointer-events: auto; }
     .konten-admin { margin-left: 0; }
 }
 .card { border: 0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, .06); }

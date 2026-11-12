@@ -10,16 +10,20 @@
     <title>@yield('judul', 'Dashboard') - Admin Kelurahan {{ $s['nama_kelurahan'] }}</title>
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=5">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}?v=6">
     @include('partials.pwa')
     @stack('css')
 </head>
 <body>
+    <div class="sidebar-latar d-lg-none" id="sidebarLatar" onclick="tutupMenu()"></div>
     <aside class="sidebar d-flex flex-column p-3" id="sidebar">
-        <a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none mb-3 px-1">
-            <img src="{{ $s['logo'] ? asset('storage/'.$s['logo']) : asset('icons/logo-banjar.png') }}" alt="Logo Kabupaten Banjar" class="logo-sidebar">
-            <span class="text-white lh-sm"><strong>SIPEKA</strong><br><small class="text-white-50">Kel. {{ $s['nama_kelurahan'] }}</small></span>
-        </a>
+        <div class="d-flex align-items-start mb-3">
+            <a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none px-1 flex-grow-1">
+                <img src="{{ $s['logo'] ? asset('storage/'.$s['logo']) : asset('icons/logo-banjar.png') }}" alt="Logo Kabupaten Banjar" class="logo-sidebar">
+                <span class="text-white lh-sm"><strong>SIPEKA</strong><br><small class="text-white-50">Kel. {{ $s['nama_kelurahan'] }}</small></span>
+            </a>
+            <button type="button" class="btn btn-link text-white p-1 d-lg-none" onclick="tutupMenu()" aria-label="Tutup menu"><i class="bi bi-x-lg fs-5"></i></button>
+        </div>
         <nav class="nav flex-column flex-grow-1">
             @if ($u->isAdmin())
                 <a class="nav-link @if (request()->routeIs('admin.dashboard')) active @endif" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
@@ -72,7 +76,7 @@
 
     <div class="konten-admin d-flex flex-column">
         <header class="topbar-admin px-3 py-2 d-flex align-items-center gap-2 sticky-top">
-            <button class="btn btn-light d-lg-none" onclick="document.getElementById('sidebar').classList.toggle('tampil')" aria-label="Menu"><i class="bi bi-list"></i></button>
+            <button class="btn btn-light d-lg-none" onclick="bukaMenu()" aria-label="Menu"><i class="bi bi-list"></i></button>
             <h1 class="h6 mb-0 fw-semibold">@yield('judul', 'Dashboard')</h1>
             <button type="button" class="btn btn-success btn-sm ms-auto d-none" data-pasang-aplikasi onclick="pasangAplikasi()"><i class="bi bi-download me-1"></i> Pasang Aplikasi</button>
             <div class="dropdown ms-2">
@@ -105,6 +109,24 @@
     </div>
 
     <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        // Menu samping di HP/tablet: buka lewat tombol ☰, tutup lewat tombol X, ketuk area gelap, geser ke kiri, atau tombol Esc
+        (function () {
+            const menu = document.getElementById('sidebar');
+            const latar = document.getElementById('sidebarLatar');
+            window.bukaMenu = () => { menu.classList.add('tampil'); latar.classList.add('tampil'); };
+            window.tutupMenu = () => { menu.classList.remove('tampil'); latar.classList.remove('tampil'); };
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') tutupMenu(); });
+            let x0 = null, y0 = null;
+            menu.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+            menu.addEventListener('touchend', (e) => {
+                if (x0 === null) return;
+                const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+                if (dx < -50 && Math.abs(dx) > Math.abs(dy)) tutupMenu();
+                x0 = null;
+            }, { passive: true });
+        })();
+    </script>
     @stack('js')
 </body>
 </html>
