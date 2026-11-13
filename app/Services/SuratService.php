@@ -174,6 +174,15 @@ class SuratService
             }
         }
 
+        // Surat Domisili: Alamat KTP / Alamat Domisili kosong → alamat penduduk (warga yang KTP-nya sudah Sekumpul)
+        $jalanRt = trim($nilai['alamat'].' RT. '.($nilai['rt'] ?: '-').' RW. '.($nilai['rw'] ?: '-'));
+        if (array_key_exists('alamat_ktp', $nilai) && trim((string) $nilai['alamat_ktp']) === '') {
+            $nilai['alamat_ktp'] = $jalanRt.' Kel. '.$s['nama_kelurahan'].' Kec. '.$s['kecamatan'].' Kab. '.$s['kabupaten'];
+        }
+        if (array_key_exists('alamat_domisili', $nilai) && trim((string) $nilai['alamat_domisili']) === '') {
+            $nilai['alamat_domisili'] = $jalanRt;
+        }
+
         return $nilai;
     }
 

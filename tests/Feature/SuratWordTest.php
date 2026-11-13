@@ -68,7 +68,7 @@ class SuratWordTest extends TestCase
     public function test_semua_template_word_terisi_tanpa_penanda_tersisa(): void
     {
         $slugs = array_map(fn ($f) => basename($f, '.docx'), glob(resource_path('surat/*.docx')));
-        $this->assertCount(13, $slugs);
+        $this->assertCount(14, $slugs);
 
         foreach ($slugs as $i => $slug) {
             $l = Layanan::where('slug', $slug)->firstOrFail();
@@ -76,7 +76,7 @@ class SuratWordTest extends TestCase
             $teks = $this->teksDocx(app(SuratService::class)->docxDariWord($p, SuratService::templateWord($l)));
 
             $this->assertStringNotContainsString('${', $teks, "$slug: penanda tersisa");
-            if ($slug !== 'pemekaran') { // pemekaran hanya memuat nama & NIK pelapor
+            if (! in_array($slug, ['pemekaran', 'domisili'])) { // pemekaran: hanya nama & NIK pelapor; domisili: alamat dari isian (diuji terpisah)
                 $this->assertStringContainsString('Jl. Contoh & Gang <1>', $teks, "$slug: alamat tidak masuk");
             }
             if (! in_array($slug, ['kelahiran'])) {
@@ -194,12 +194,44 @@ class SuratWordTest extends TestCase
         $this->assertStringContainsString('KASI UJI, S.AP', $teks);
         $this->assertStringContainsString('19780000 000000 1 000', $teks);
         $this->actingAs($admin)->get("/admin/layanan/{$pem->slug}/contoh-word")->assertOk()->assertHeader('Content-Type', 'application/pdf');
-        $this->actingAs($admin)->get('/admin/layanan/domisili/template')->assertOk()->assertSee('Pratinjau PDF');
+        $this->actingAs($admin)->get('/admin/layanan/usaha/template')->assertOk()->assertSee('Pratinjau PDF');
     }
 
     public function test_layanan_tanpa_word_tetap_pakai_template_html(): void
     {
-        $this->assertNull(SuratService::templateWord(Layanan::where('slug', 'domisili')->first()));
+        $this->assertNull(SuratService::templateWord(Layanan::where('slug', 'usaha')->first()));
         $this->assertNotNull(SuratService::templateWord(Layanan::where('slug', 'pemekaran')->first()));
+    }
+
+    public function test_domisili_penduduk_dari_word_kantor(): void
+    {
+        $l = Layanan::where('slug', 'domisili')->firstOrFail();
+        $this->assertSame('docx', SuratService::ekstensiTemplate($l));
+        $this->assertSame('pemerintahan', $l->bidang);
+        $this->assertSame('domisili', $l->buku_nomor);
+        $this->assertSame(['alamat_ktp', 'alamat_domisili', 'keperluan'], collect($l->isian)->pluck('key')->all());
+
+        // Isian alamat diisi: dipakai apa adanya
+        $teks = $this->teksDocx(app(SuratService::class)->docxDariWord($this->permohonan($l), SuratService::templateWord($l)));
+        $this->assertStringContainsString('SURAT KETERANGAN DOMISILI PENDUDUK', $teks);
+        $this->assertStringContainsString('ISI alamat_ktp', $teks);
+        $this->assertStringContainsString('ISI alamat_domisili Kel. Sekumpul', $teks);
+        $this->assertStringContainsString('Martapura, 02-01-1990', $teks);
+
+        // Isian alamat kosong: pakai alamat penduduk
+        $p = $this->permohonan($l, 2);
+        $p->data = array_merge($p->data, ['alamat_ktp' => '', 'alamat_domisili' => '']);
+        $teks = $this->teksDocx(app(SuratService::class)->docxDariWord($p, SuratService::templateWord($l)));
+        $this->assertStringNotContainsString('${', $teks);
+        $this->assertStringContainsString('Jl. Contoh & Gang <1> RT. 001 RW. 002 Kel. Sekumpul', $teks);
+
+        // Nomor surat lanjut dari buku Domisili kantor ("299 / DP/ KS - XI / 2026" → 300)
+        $p->update(['nomor_surat' => '299 / DP/ KS - XI / 2026', 'tanggal_surat' => now()]);
+        $this->assertStringStartsWith('300 / DP/ KS - ', SuratService::nomorSuratBerikutnya($l));
+
+        // Antrean: hanya Kasi Pemerintahan yang bisa mengambil
+        $p3 = $this->permohonan($l, 3);
+        $this->actingAs(User::where('name', 'Kasi Kesos')->firstOrFail())->get('/admin/antrean')->assertOk()->assertDontSee("/admin/permohonan/{$p3->id}/ambil");
+        $this->actingAs(User::where('name', 'Kasi Pemerintahan')->firstOrFail())->get('/admin/antrean')->assertOk()->assertSee("/admin/permohonan/{$p3->id}/ambil");
     }
 }

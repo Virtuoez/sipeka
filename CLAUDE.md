@@ -90,8 +90,8 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - Nomor surat: `layanan.format_nomor` (mis. `{no} / KS-Pem / {bulan_romawi} / {tahun}`, `472. M / {no} / ...`, `400.9/{no}/Kel.SKP`)
   + `layanan.buku_nomor` (pemerintahan / kematian / kesos / pm). `SuratService::nomorSuratBerikutnya` = nomor TERBESAR di buku itu
   tahun ini + 1 (`ambilUrut` membaca {no} dari nomor jadi), jadi Kasi cukup sekali mengetik nomor buku kantor.
-- **Surat dari file Word kantor** (keputusan pemilik: hasil harus persis surat kantor): `resources/surat/{slug}.docx` (13 jenis;
-  domisili, pengantar KTP/KK, usaha belum punya contoh kantor → tetap template HTML). Dibuat dari surat asli di folder kantor
+- **Surat dari file Word kantor** (keputusan pemilik: hasil harus persis surat kantor): `resources/surat/{slug}.docx` (14 jenis;
+  pengantar KTP/KK, usaha belum punya contoh kantor → tetap template HTML). Dibuat dari surat asli di folder kantor
   dengan Word COM: data warga & nama/NIP pejabat diganti `${penanda}`, scan KTP dibuang, info dokumen dihapus. Skrip pembuatnya
   TIDAK di repo (berisi data asli). `SuratService::templateWord()` (unggahan admin di `storage/app/private/template-surat/` menimpa
   bawaan) → `docxDariWord()` (PhpWord TemplateProcessor; kosong → "-"). Penanda tambahan Word: `ttl_angka`, `{isian_tanggal}_angka`,
@@ -103,6 +103,8 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
   `fullCalcOnLoad="1"` supaya Excel menghitung ulang rumus lembar surat. `nilaiExcel()`: `p{n}_nik/nama/ket/no` dari isian
   "Anggota yang Pindah" (baris "NIK - Nama - Ket"), `jumlah_pengikut`, `nama_fasilitator_puskesos` (Profil Kelurahan).
 - Isian tipe `pilihan`: `Label | pilihan: A; B; C` → select di formulir; nilai = teks pilihan, `{key}_kode` = nomor urut (kode formulir pindah).
+- **Domisili Penduduk** (`domisili.docx`, dari surat kantor Nov 2026): nomor `{no} / DP/ KS - {bulan_romawi} / {tahun}` buku `domisili`,
+  ttd Kasi Pemerintahan. Isian opsional `alamat_ktp` / `alamat_domisili`; kosong → alamat penduduk (`SuratService::nilaiPenanda`).
 - Contoh tampilan per template: `resources/surat/contoh/{slug}.pdf` (data fiktif, dibuat dari Word/Excel), tampil di halaman Template.
 - Logo kop bawaan `resources/img/logo-kabupaten-banjar.png` (dari surat kantor) bila Profil Kelurahan belum punya logo.
 - **Google Drive arsip** (menu "Google Drive" untuk Kasi & admin, `Admin\DriveController`, `App\Services\GoogleDrive`, REST API langsung

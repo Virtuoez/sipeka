@@ -49,7 +49,7 @@ class LayananSeeder extends Seeder
      * (mis. semua surat Kasi Pemerintahan, kecuali kematian yang punya buku sendiri "472. M").
      */
     private const NOMOR = [
-        'domisili' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
+        'domisili' => ['domisili', '{no} / DP/ KS - {bulan_romawi} / {tahun}'], // buku nomor sendiri, seperti surat kantor
         'pengantar-ktp' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
         'pengantar-kk' => ['pemerintahan', '{no} / KS-Pem / {bulan_romawi} / {tahun}'],
         'kelahiran' => ['pemerintahan', '{no} / KS-SKK / {bulan_romawi} / {tahun}'],
@@ -79,6 +79,7 @@ class LayananSeeder extends Seeder
     /** Format nomor bawaan versi lama; kalau masih sama (belum diubah admin), diganti format terbaru. */
     private const NOMOR_LAMA = [
         'pindah' => '{no} / KS-Pem / {bulan_romawi} / {tahun}',
+        'domisili' => '{no} / KS-Pem / {bulan_romawi} / {tahun}',
     ];
 
     /** Sebutan jabatan di kalimat pembuka surat Kasi (seperti surat kantor). */
@@ -217,13 +218,19 @@ class LayananSeeder extends Seeder
         return [
             // ===== KASI PEMERINTAHAN =====
             [
-                'slug' => 'domisili', 'nama' => 'Surat Keterangan Domisili', 'kode_surat' => '470', 'folder' => '01 - Keterangan Domisili', 'ikon' => 'house-door', 'bidang' => 'pemerintahan',
-                'deskripsi' => 'Keterangan bahwa warga benar berdomisili di Kelurahan Sekumpul.',
+                // Format surat kantor "Surat Keterangan Domisili Penduduk" (resources/surat/domisili.docx).
+                // Alamat KTP / Alamat Domisili kosong → alamat penduduk (lihat SuratService::nilaiWord).
+                'slug' => 'domisili', 'nama' => 'Surat Keterangan Domisili Penduduk', 'kode_surat' => '470', 'folder' => '01 - Keterangan Domisili', 'ikon' => 'house-door', 'bidang' => 'pemerintahan',
+                'deskripsi' => 'Keterangan bahwa warga (termasuk yang KTP-nya dari luar daerah) benar bertempat tinggal di Kelurahan Sekumpul.',
                 'persyaratan' => "KTP\nKartu Keluarga\n$rt",
-                'isian' => "Keperluan | paragraf\nLama Tinggal | teks (opsional)",
-                'html' => $this->judul('Surat Keterangan Domisili').$this->pembukaLurah().$this->dataDiri()
-                    .$this->p('Yang bersangkutan memang benar Penduduk yang berdomisili di Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}}.')
-                    .$this->keperluan().$this->p(self::PENUTUP).$this->ttdLurah(),
+                'isian' => "Alamat KTP | paragraf (opsional)\nAlamat Domisili | teks (opsional)\nKeperluan | paragraf",
+                'html' => $this->judul('Surat Keterangan Domisili Penduduk')
+                    .$this->p('Yang bertanda tangan di bawah ini atas nama Lurah {{nama_kelurahan}}, '.self::JABATAN_KASI['pemerintahan'].' Kelurahan {{nama_kelurahan}} Kecamatan {{kecamatan}} Kabupaten {{kabupaten}} menerangkan bahwa :')
+                    .$this->tabel(['Nama Lengkap' => '<strong>{{nama}}</strong>', 'NIK' => '{{nik}}', 'Tempat, Tanggal Lahir' => '{{ttl}}', 'Jenis Kelamin' => '{{jenis_kelamin}}', 'Pekerjaan' => '{{pekerjaan}}', 'Kewarganegaraan' => '{{kewarganegaraan}}', 'Alamat KTP' => '{{alamat_ktp}}'], 30)
+                    .$this->p('Yang bersangkutan memang benar sekarang berdomisili / bertempat tinggal di alamat : {{alamat_domisili}} Kel. {{nama_kelurahan}} Kec. {{kecamatan}} Kab. {{kabupaten}}.')
+                    .$this->p('Surat Keterangan Domisili Penduduk ini berlaku sementara sebagai bahan persyaratan untuk keperluan &ldquo; {{keperluan}} &rdquo; dan tidak bisa dipergunakan untuk keperluan lainnya.')
+                    .$this->p('Demikian Surat Keterangan Domisili Penduduk ini diberikan untuk dapat dipergunakan sebagaimana mestinya.')
+                    .$this->ttdKasi('pemerintahan'),
             ],
             [
                 'slug' => 'pengantar-ktp', 'nama' => 'Surat Pengantar KTP-el', 'kode_surat' => '470', 'folder' => '04 - Pengantar KTP', 'ikon' => 'person-vcard', 'bidang' => 'pemerintahan',
