@@ -49,7 +49,7 @@
                     <div class="form-text" id="infoNik">Ketik 16 digit NIK. Kalau terdaftar di data penduduk, data diri terisi sendiri.</div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Nomor KK</label>
+                    <label class="form-label">Nomor KK <span class="badge text-bg-light">opsional</span></label>
                     <input name="no_kk" value="{{ old('no_kk') }}" class="form-control form-control-lg @error('no_kk') is-invalid @enderror" inputmode="numeric" maxlength="16">
                 </div>
                 <div class="col-12">
@@ -100,7 +100,7 @@
                     <input name="rw" value="{{ old('rw') }}" class="form-control form-control-lg @error('rw') is-invalid @enderror" inputmode="numeric" maxlength="3" required>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Nomor HP/WhatsApp</label>
+                    <label class="form-label">Nomor HP/WhatsApp <span class="badge text-bg-light">opsional</span></label>
                     <input name="no_hp" value="{{ old('no_hp') }}" class="form-control form-control-lg @error('no_hp') is-invalid @enderror" inputmode="tel" placeholder="08xxxxxxxxxx">
                 </div>
             </div>

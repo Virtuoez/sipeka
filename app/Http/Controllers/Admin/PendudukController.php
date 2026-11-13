@@ -160,6 +160,9 @@ class PendudukController extends Controller
 
     private function validasi(Request $request, ?Penduduk $penduduk = null): array
     {
+        // No KK opsional: "-" / spasi dianggap kosong
+        $request->merge(['no_kk' => preg_replace('/\D+/', '', (string) $request->input('no_kk')) ?: null]);
+
         $data = $request->validate([
             'nik' => ['required', 'digits:16', Rule::unique('penduduk', 'nik')->ignore($penduduk?->id)],
             'no_kk' => ['nullable', 'digits:16'],

@@ -35,6 +35,12 @@ class PengajuanController extends Controller
     {
         abort_unless($layanan->aktif, 404);
 
+        // No KK & No HP/WA opsional: "-" / spasi / titik dianggap kosong, spasi & tanda baca di antara angka dibuang
+        $request->merge([
+            'no_kk' => preg_replace('/\D+/', '', (string) $request->input('no_kk')) ?: null,
+            'no_hp' => preg_replace('/[\s\-().]+/', '', (string) $request->input('no_hp')) ?: null,
+        ]);
+
         $aturan = [
             'nik' => ['required', 'digits:16'],
             'no_kk' => ['nullable', 'digits:16'],

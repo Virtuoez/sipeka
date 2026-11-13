@@ -16,14 +16,34 @@ class KartuKeluargaOpsionalTest extends TestCase
 
     protected $seed = true;
 
-    private function kirim(array $berkas)
+    private function kirim(array $berkas, array $tambahan = [])
     {
-        return $this->actingAs(User::where('role', 'pelayanan')->firstOrFail())->post('/admin/pengajuan/sktm', [
+        return $this->actingAs(User::where('role', 'pelayanan')->firstOrFail())->post('/admin/pengajuan/sktm', $tambahan + [
             'nik' => '6303000101900009', 'nama' => 'Warga Tanpa KK', 'tempat_lahir' => 'Martapura', 'tanggal_lahir' => '1990-01-02',
             'jenis_kelamin' => 'Laki-laki', 'agama' => 'Islam', 'status_perkawinan' => 'Kawin', 'pekerjaan' => 'Buruh',
             'kewarganegaraan' => 'WNI', 'alamat' => 'Jl. Contoh', 'rt' => '1', 'rw' => '2',
             'isian' => ['keperluan' => 'Berobat'], 'berkas' => $berkas,
         ]);
+    }
+
+    public function test_nomor_kk_dan_hp_opsional(): void
+    {
+        $this->actingAs(User::where('role', 'pelayanan')->firstOrFail())->get('/admin/pengajuan/sktm')->assertOk()
+            ->assertSee('Nomor KK <span class="badge text-bg-light">opsional</span>', false)
+            ->assertSee('Nomor HP/WhatsApp <span class="badge text-bg-light">opsional</span>', false);
+
+        // Kosong atau "-" diterima dan disimpan kosong
+        $this->kirim(['ktp' => '1'], ['no_kk' => '-', 'no_hp' => '-'])->assertSessionHasNoErrors();
+        $p = Permohonan::latest('id')->firstOrFail();
+        $this->assertNull($p->no_hp);
+        $this->assertNull($p->data['no_kk'] ?? null);
+
+        // Diisi dengan spasi tetap rapi; diisi tapi salah tetap ditolak
+        $this->kirim(['ktp' => '1'], ['nik' => '6303000101900010', 'no_kk' => '6303 0001 0190 0000', 'no_hp' => '0812-3456-7890'])->assertSessionHasNoErrors();
+        $p = Permohonan::latest('id')->firstOrFail();
+        $this->assertSame('6303000101900000', $p->data['no_kk']);
+        $this->assertSame('081234567890', $p->no_hp);
+        $this->kirim(['ktp' => '1'], ['nik' => '6303000101900011', 'no_kk' => '123'])->assertSessionHasErrors('no_kk');
     }
 
     public function test_kartu_keluarga_tidak_wajib_di_semua_layanan(): void
