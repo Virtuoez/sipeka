@@ -112,7 +112,7 @@ Buka alamat SIPEKA, lalu muncul **2 tombol besar**:
 | Tombol | Dipakai di | Setelah ditekan |
 |---|---|---|
 | **Pelayanan** | Tablet meja depan | Langsung masuk ke halaman pilih jenis surat |
-| **Kasi** | Komputer Kasi | Pilih **Kasi PC 1 / PC 2 / PC 3**, lalu masuk ke Antrean Surat |
+| **Kasi** | Komputer Kasi | Pilih **Kasi Pemerintahan** atau **Kasi Kesos & PM**, lalu masuk ke Antrean Surat |
 
 - Pilihan ini **diingat di perangkat itu**. Besok cukup buka aplikasinya, langsung masuk tanpa memilih lagi.
 - Untuk mengganti: klik nama di pojok kanan atas → **Ganti Peran**.

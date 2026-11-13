@@ -153,7 +153,7 @@ class SuratWordTest extends TestCase
     public function test_kasi_selesai_mengarsipkan_file_kantor(): void
     {
         Storage::fake('local');
-        $kasi = User::where('name', 'Kasi Kesos')->firstOrFail();
+        $kasi = User::where('name', 'Kasi Kesos & PM')->firstOrFail();
 
         // Word (belum menikah) dan Excel (SKTM)
         foreach ([['belum-menikah', 'docx', 'Word'], ['sktm', 'xlsx', 'Excel']] as $i => [$slug, $ext, $app]) {
@@ -231,7 +231,7 @@ class SuratWordTest extends TestCase
 
         // Antrean: hanya Kasi Pemerintahan yang bisa mengambil
         $p3 = $this->permohonan($l, 3);
-        $this->actingAs(User::where('name', 'Kasi Kesos')->firstOrFail())->get('/admin/antrean')->assertOk()->assertDontSee("/admin/permohonan/{$p3->id}/ambil");
+        $this->actingAs(User::where('name', 'Kasi Kesos & PM')->firstOrFail())->get('/admin/antrean')->assertOk()->assertDontSee("/admin/permohonan/{$p3->id}/ambil");
         $this->actingAs(User::where('name', 'Kasi Pemerintahan')->firstOrFail())->get('/admin/antrean')->assertOk()->assertSee("/admin/permohonan/{$p3->id}/ambil");
     }
 }

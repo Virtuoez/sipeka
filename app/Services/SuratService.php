@@ -51,10 +51,8 @@ class SuratService
         'jabatan_ttd' => 'Jabatan penandatangan',
         'nama_kasi_pemerintahan' => 'Nama Kasi Pemerintahan',
         'nip_kasi_pemerintahan' => 'NIP Kasi Pemerintahan',
-        'nama_kasi_kesos' => 'Nama Kasi Kesos',
-        'nip_kasi_kesos' => 'NIP Kasi Kesos',
-        'nama_kasi_pm' => 'Nama Kasi PM',
-        'nip_kasi_pm' => 'NIP Kasi PM',
+        'nama_kasi_kesos' => 'Nama Kasi Kesos & PM',
+        'nip_kasi_kesos' => 'NIP Kasi Kesos & PM',
     ];
 
     public static function tanggalIndo($tanggal): string
@@ -155,6 +153,9 @@ class SuratService
             $nilai['nama_kasi_'.$b] = $s['nama_kasi_'.$b] ?? '';
             $nilai['nip_kasi_'.$b] = $s['nip_kasi_'.$b] ?? '';
         }
+        // Kasi PM sudah digabung ke Kasi Kesos & PM: template lama ({{nama_kasi_pm}}, Domisili Usaha) memakai Kasi gabungan
+        $nilai['nama_kasi_pm'] = $nilai['nama_kasi_kesos'];
+        $nilai['nip_kasi_pm'] = $nilai['nip_kasi_kesos'];
 
         foreach (['no_kk', 'tempat_lahir', 'jenis_kelamin', 'agama', 'status_perkawinan', 'pekerjaan', 'kewarganegaraan', 'alamat', 'rt', 'rw'] as $k) {
             $nilai[$k] = $d[$k] ?? '';

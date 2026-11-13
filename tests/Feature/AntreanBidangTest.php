@@ -9,7 +9,7 @@ use App\Services\ArsipService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** Surat otomatis masuk ke antrean Kasi sesuai bidangnya (Pemerintahan / Kesos / PM). */
+/** Surat otomatis masuk ke antrean Kasi sesuai bidangnya (Pemerintahan / Kesos & PM). */
 class AntreanBidangTest extends TestCase
 {
     use RefreshDatabase;
@@ -38,10 +38,12 @@ class AntreanBidangTest extends TestCase
     public function test_akun_kasi_sudah_dinamai_per_bidang(): void
     {
         $this->assertSame('pemerintahan', $this->kasi('Kasi Pemerintahan')->bidang);
-        $this->assertSame('kesos', $this->kasi('Kasi Kesos')->bidang);
-        $this->assertSame('pm', $this->kasi('Kasi PM')->bidang);
+        $this->assertSame('kesos', $this->kasi('Kasi Kesos & PM')->bidang);
+        $this->assertNull(User::where('name', 'Kasi PM')->first(), 'Kasi PM sudah digabung ke Kasi Kesos & PM');
         $this->assertSame(19, Layanan::count());
         $this->assertSame(0, Layanan::whereNull('bidang')->count());
+        $this->assertSame(0, Layanan::where('bidang', 'pm')->count());
+        $this->assertSame(8, Layanan::where('bidang', 'kesos')->count());
     }
 
     public function test_antrean_hanya_berisi_surat_bidangnya(): void
@@ -50,22 +52,19 @@ class AntreanBidangTest extends TestCase
         $sktm = $this->permohonan('sktm', 2);
         $usaha = $this->permohonan('domisili-usaha', 3);
 
-        $this->actingAs($this->kasi('Kasi Kesos'))->get('/admin/antrean')->assertOk()
-            ->assertSee('Warga sktm')->assertDontSee('Warga kematian')->assertDontSee('Warga domisili-usaha');
+        $this->actingAs($this->kasi('Kasi Kesos & PM'))->get('/admin/antrean')->assertOk()
+            ->assertSee('Warga sktm')->assertSee('Warga domisili-usaha')->assertDontSee('Warga kematian');
 
         $this->actingAs($this->kasi('Kasi Pemerintahan'))->get('/admin/antrean')->assertOk()
-            ->assertSee('Warga kematian')->assertDontSee('Warga sktm');
-
-        $this->actingAs($this->kasi('Kasi PM'))->get('/admin/antrean')->assertOk()
-            ->assertSee('Warga domisili-usaha')->assertDontSee('Warga kematian');
+            ->assertSee('Warga kematian')->assertDontSee('Warga sktm')->assertDontSee('Warga domisili-usaha');
 
         // Kasi lain tidak bisa mengambil / membuka surat bidang lain
-        $this->actingAs($this->kasi('Kasi Kesos'))->post("/admin/permohonan/{$kematian->id}/ambil")->assertForbidden();
-        $this->actingAs($this->kasi('Kasi Kesos'))->get("/admin/permohonan/{$kematian->id}")->assertForbidden();
+        $this->actingAs($this->kasi('Kasi Kesos & PM'))->post("/admin/permohonan/{$kematian->id}/ambil")->assertForbidden();
+        $this->actingAs($this->kasi('Kasi Kesos & PM'))->get("/admin/permohonan/{$kematian->id}")->assertForbidden();
         $this->assertSame('baru', $kematian->fresh()->status);
 
         // Kasi bidangnya bisa
-        $this->actingAs($this->kasi('Kasi Kesos'))->post("/admin/permohonan/{$sktm->id}/ambil")->assertRedirect();
+        $this->actingAs($this->kasi('Kasi Kesos & PM'))->post("/admin/permohonan/{$sktm->id}/ambil")->assertRedirect();
         $this->assertSame('diproses', $sktm->fresh()->status);
     }
 
@@ -81,13 +80,14 @@ class AntreanBidangTest extends TestCase
     public function test_admin_bisa_mengganti_bidang_kasi_dan_layanan(): void
     {
         $admin = User::where('role', 'admin')->firstOrFail();
-        $kasi = $this->kasi('Kasi PM');
+        $kasi = $this->kasi('Kasi Kesos & PM');
 
-        $this->actingAs($admin)->put("/admin/akun/{$kasi->id}/bidang", ['bidang' => 'kesos'])->assertRedirect();
-        $this->assertSame('kesos', $kasi->fresh()->bidang);
+        $this->actingAs($admin)->put("/admin/akun/{$kasi->id}/bidang", ['bidang' => 'pemerintahan'])->assertRedirect();
+        $this->assertSame('pemerintahan', $kasi->fresh()->bidang);
 
         $this->actingAs($admin)->put("/admin/akun/{$kasi->id}/bidang", ['bidang' => 'ngawur'])->assertSessionHasErrors('bidang');
-        $this->actingAs($admin)->get('/admin/akun')->assertOk()->assertSee('Surat Kasi Kesos');
+        $this->actingAs($admin)->put("/admin/akun/{$kasi->id}/bidang", ['bidang' => 'pm'])->assertSessionHasErrors('bidang');
+        $this->actingAs($admin)->get('/admin/akun')->assertOk()->assertSee('Surat Kasi Kesos & PM');
         $this->actingAs($admin)->get('/admin/layanan')->assertOk()->assertSee('Kasi Pemerintahan');
     }
 

@@ -34,10 +34,8 @@ class Pengaturan extends Model
         // Penandatangan "a.n. Lurah" per bidang Kasi (dipakai template {{nama_kasi_pemerintahan}} dst.)
         'nama_kasi_pemerintahan' => 'NAMA KASI PEMERINTAHAN',
         'nip_kasi_pemerintahan' => '19xxxxxxxxxxxxxxxx',
-        'nama_kasi_kesos' => 'NAMA KASI KESOS',
+        'nama_kasi_kesos' => 'NAMA KASI KESOS & PM',
         'nip_kasi_kesos' => '19xxxxxxxxxxxxxxxx',
-        'nama_kasi_pm' => 'NAMA KASI PM',
-        'nip_kasi_pm' => '19xxxxxxxxxxxxxxxx',
         // Mengetahui Camat (Surat Pernyataan Hibah)
         'nama_camat' => 'NAMA CAMAT',
         'nip_camat' => '19xxxxxxxxxxxxxxxx',

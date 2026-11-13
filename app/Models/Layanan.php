@@ -15,11 +15,11 @@ class Layanan extends Model
     /**
      * Bidang Kasi yang mengerjakan jenis surat ini (sesuai folder arsip kantor: kasi pemerintahan / kasi kesos / kasi pm).
      * Permohonan hanya muncul di antrean Kasi dengan bidang yang sama. Layanan tanpa bidang muncul di semua Kasi.
+     * Kasi Kesos & Kasi PM digabung (permintaan atasan, Nov 2026): bidang "pm" dilebur ke "kesos".
      */
     public const BIDANG = [
         'pemerintahan' => 'Kasi Pemerintahan',
-        'kesos' => 'Kasi Kesos',
-        'pm' => 'Kasi PM',
+        'kesos' => 'Kasi Kesos & PM',
     ];
 
     public function labelBidang(): string

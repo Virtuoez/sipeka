@@ -32,8 +32,6 @@ class PengaturanController extends Controller
             'nip_kasi_pemerintahan' => 'nullable|string|max:30',
             'nama_kasi_kesos' => 'nullable|string|max:100',
             'nip_kasi_kesos' => 'nullable|string|max:30',
-            'nama_kasi_pm' => 'nullable|string|max:100',
-            'nip_kasi_pm' => 'nullable|string|max:30',
             'nama_camat' => 'nullable|string|max:100',
             'nip_camat' => 'nullable|string|max:30',
             'nama_fasilitator_puskesos' => 'nullable|string|max:100',

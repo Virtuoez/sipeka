@@ -20,6 +20,8 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
   Ikon dibuat `php tools/buat-ikon.php`. Di alamat LAN (http) perlu flag Chrome `unsafely-treat-insecure-origin-as-secure`.
   Kalau `sw.js` diubah, naikkan versi `CACHE`.
 - Surat Pengantar RT/RW **opsional** di semua layanan (keputusan pemilik). Template bawaan tidak menyebut pengantar RT/RW.
+- Berkas **Kartu Keluarga** juga **opsional** di semua layanan (banyak warga tidak membawa KK fisik; seeder `$kk`, migration
+  `kartu_keluarga_opsional` hanya label persis "Kartu Keluarga"). Isian No KK di formulir memang sudah boleh kosong.
 
 ## Menjalankan
 - `jalankan-jaringan.bat` (PC kelurahan, host 0.0.0.0) / `jalankan.bat` (laptop, 127.0.0.1) → `tools/siapkan.ps1`:
@@ -78,8 +80,13 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
 - Kasi boleh membuka Arsip Berkas (permintaan pemilik).
 
 ## Kasi per bidang (permintaan pemilik, dari folder kantor `kasi pemerintahan` / `kasi kesos` / `kasi pm`)
-- `Layanan::BIDANG` (pemerintahan/kesos/pm). `layanan.bidang` = Kasi yang mengerjakan; `users.bidang` = bidang akun Kasi.
-  Akun: Kasi Pemerintahan, Kasi Kesos, Kasi PM (dulu Kasi PC 1/2/3; diganti nama oleh migration `kasi_per_bidang`).
+- **Kasi Kesos & Kasi PM DIGABUNG** (permintaan atasan, Nov 2026): `Layanan::BIDANG` = pemerintahan / kesos (label "Kasi Kesos & PM").
+  Bidang `pm` tidak ada lagi. Migration `gabung_kasi_kesos_pm`: layanan & akun `pm` → `kesos`, folder arsip `Kasi Kesos` + `Kasi PM`
+  → `Kasi Kesos & PM` (path di DB ikut; arsip PM di Drive ditandai belum tersalin). Buku nomor `pm` (400.10) tetap terpisah.
+  Jabatan di surat Domisili Usaha/Usaha tetap "Kasi Pemberdayaan Masyarakat" (keputusan pemilik); `{{nama_kasi_pm}}`/`nip_kasi_pm`
+  = nilai Kasi Kesos & PM.
+- `layanan.bidang` = Kasi yang mengerjakan; `users.bidang` = bidang akun Kasi.
+  Akun: Kasi Pemerintahan, Kasi Kesos & PM (dulu Kasi PC 1/2/3 → Pemerintahan/Kesos/PM → digabung).
 - Antrean & lencana memakai scope `Permohonan::bagianKasi($user)`; `ambil()` dan `bolehDilihat()` cek `Layanan::untukKasi()`.
   Kasi tanpa bidang / layanan tanpa bidang = semua. Admin mengatur bidang di Akun Petugas & form Layanan.
 - Arsip: `arsip/{Kasi Bidang}/{folder layanan}/{tahun}/{bulan}/...`.
@@ -88,7 +95,7 @@ Pemilik proyek adalah pemula. Jelaskan dengan bahasa santai, langkah demi langka
   `LayananSeeder::pasang(false)` (dipakai migration) hanya menimpa template yang md5-nya cocok `TEMPLATE_LAMA` (belum diedit admin).
   Kalau template bawaan diubah lagi: tambahkan md5 versi sekarang ke `TEMPLATE_LAMA` + buat migration yang memanggil `pasang(false)`.
 - Nomor surat: `layanan.format_nomor` (mis. `{no} / KS-Pem / {bulan_romawi} / {tahun}`, `472. M / {no} / ...`, `400.9/{no}/Kel.SKP`)
-  + `layanan.buku_nomor` (pemerintahan / kematian / kesos / pm). `SuratService::nomorSuratBerikutnya` = nomor TERBESAR di buku itu
+  + `layanan.buku_nomor` (pemerintahan / kematian / domisili / kesos / pm). `SuratService::nomorSuratBerikutnya` = nomor TERBESAR di buku itu
   tahun ini + 1 (`ambilUrut` membaca {no} dari nomor jadi), jadi Kasi cukup sekali mengetik nomor buku kantor.
 - **Surat dari file Word kantor** (keputusan pemilik: hasil harus persis surat kantor): `resources/surat/{slug}.docx` (14 jenis;
   pengantar KTP/KK, usaha belum punya contoh kantor → tetap template HTML). Dibuat dari surat asli di folder kantor

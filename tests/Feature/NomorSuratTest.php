@@ -65,7 +65,7 @@ class NomorSuratTest extends TestCase
         // Kematian punya buku sendiri
         $this->assertSame("472. M / 069 / KS - $bulan / $tahun", SuratService::nomorSuratBerikutnya($this->layanan('kematian')));
         $this->assertSame('400.9/313/Kel.SKP', SuratService::nomorSuratBerikutnya($this->layanan('sktm')));
-        // Buku Kasi PM belum dipakai
+        // Buku nomor surat PM (400.10) tetap terpisah walau Kasi-nya digabung, belum dipakai
         $this->assertSame('400.10/001/Kel.SKP', SuratService::nomorSuratBerikutnya($this->layanan('domisili-usaha')));
     }
 }

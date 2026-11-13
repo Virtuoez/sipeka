@@ -20,8 +20,7 @@ class AkunPetugasSeeder extends Seeder
             ['pelayanan@sekumpul.test', 'Admin Pelayanan', 'pelayanan', null],
             // Satu akun per bidang Kasi (sesuai folder kantor). Surat otomatis masuk ke Kasi bidangnya.
             ['kasi1@sekumpul.test', 'Kasi Pemerintahan', 'kasi', 'pemerintahan'],
-            ['kasi2@sekumpul.test', 'Kasi Kesos', 'kasi', 'kesos'],
-            ['kasi3@sekumpul.test', 'Kasi PM', 'kasi', 'pm'],
+            ['kasi2@sekumpul.test', 'Kasi Kesos & PM', 'kasi', 'kesos'], // Kasi Kesos & Kasi PM digabung
         ];
 
         foreach ($akun as [$email, $nama, $peran, $bidang]) {
